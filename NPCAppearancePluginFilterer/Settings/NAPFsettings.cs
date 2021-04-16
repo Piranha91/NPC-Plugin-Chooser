@@ -13,18 +13,22 @@ namespace NPCAppearancePluginFilterer.Settings
     class NAPFsettings
     {
         [SynthesisOrder]
-        [SynthesisTooltip("Click here to select which NPCs should have their appearance transferred.")]
-        //public HashSet<ModKey> PluginsToForward { get; set; } = new HashSet<ModKey>();
-
-        public HashSet<(ModKey, bool)> PluginsToForward2 { get; set; } = new HashSet<(ModKey, bool)>();
+        [SynthesisTooltip("Plugins from which NPC appearance should be forwarded.")]
+        public HashSet<ModKey> PluginsToForward { get; set; } = new HashSet<ModKey>();
     }
 
     class PerPluginSettings
     {
         [SynthesisOrder]
-        [SynthesisTooltip("Click here to select which NPCs should have their appearance forwarded. If the NPC appears in multiple plugins, the conflict winner will be forwarded.")]
+        [SynthesisTooltip("Plugin")]
+        public ModKey Plugin { get; set; } = new ModKey();
+
+        [SynthesisOrder]
+        [SynthesisTooltip("Click here to select which NPCs should have their appearance forwarded. If the NPC appears in multiple plugins, the load order conflict winner will be forwarded.")]
         public HashSet<IFormLinkGetter<INpcGetter>> NPCs { get; set; } = new HashSet<IFormLinkGetter<INpcGetter>>();
 
-        public bool RemoveThisNPCs { get; set; }
+        [SynthesisOrder]
+        [SynthesisTooltip("If checked, all NPCs in the chosen plugin EXCEPT the ones specified above will be forwarded.")]
+        public bool RemoveTheseNPCs { get; set; }
     }
 }
