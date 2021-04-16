@@ -14,7 +14,11 @@ namespace NPCAppearancePluginFilterer.Settings
     {
         [SynthesisOrder]
         [SynthesisTooltip("Plugins from which NPC appearance should be forwarded.")]
-        public HashSet<ModKey> PluginsToForward { get; set; } = new HashSet<ModKey>();
+        public HashSet<PerPluginSettings> PluginsToForward { get; set; } = new HashSet<PerPluginSettings>();
+
+        [SynthesisOrder]
+        [SynthesisTooltip("Directory to which meshes and textures should be copied.")]
+        public string AssetOutputDirectory { get; set; } = "";
     }
 
     class PerPluginSettings
