@@ -32,33 +32,267 @@ namespace NPCAppearancePluginFilterer
             {
                 throw new Exception("Cannot find output directory specified in settings: " + settings.AssetOutputDirectory);
             }
+
+            if (settings.MO2DataPath != "" && !Directory.Exists(settings.MO2DataPath))
+            {
+                throw new Exception("Cannot find the Mod Organizer 2 Mods folder specified in settings: " + settings.MO2DataPath);
+            }
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             NAPFsettings settings = Settings.Value;
 
-            HashSet<INpcGetter> FinishedNPCs = new HashSet<INpcGetter>();
+            Dictionary<ModKey, string> PluginDirectoryDict = initPluginDirectoryDict(settings, state);
 
             foreach (var PPS in settings.PluginsToForward)
             {
                 Console.WriteLine("Processing {0}", PPS.Plugin.ToString());
 
-                foreach (var npc in state.LoadOrder.PriorityOrder.WinningOverrides<INpcGetter>())
+                if (PluginDirectoryDict.ContainsKey(PPS.Plugin) == false)
                 {
-                    if (npc.FormKey.ModKey != PPS.Plugin) // THIS IS WRONG. Should be looking at winning override, not root modkey
-                    {
-                        continue;
-                    }
+                    throw new Exception("Plugin -> Folder dictionary does not contain an entry for plugin " + PPS.Plugin.ToString());
+                }
+                string currentDataDir = PluginDirectoryDict[PPS.Plugin];
 
-                    string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
-
-                    if ((PPS.RemoveTheseNPCs == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.RemoveTheseNPCs == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
+                foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
+                {
+                    var npcWinner = npcCO.Record;
+                    string NPCdispStr = npcWinner.Name + " | " + npcWinner.EditorID + " | " + npcWinner.FormKey.ToString();
+                    foreach (var context in state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey))
                     {
-                        Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
-                        var NPCoverride = state.PatchMod.Npcs.GetOrAddAsOverride(npc);
+                        if (context.ModKey != PPS.Plugin)
+                        {
+                            continue;
+                        }
+
+                        var npc = context.Record;
+                        if ((PPS.RemoveTheseNPCs == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.RemoveTheseNPCs == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
+                        {
+                            Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
+                            var NPCoverride = state.PatchMod.Npcs.GetOrAddAsOverride(npc);
+                            copyAssets(NPCoverride, settings, currentDataDir, state);
+                        }
                     }
                 }
+
+                //remap dependencies
+                Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
+                state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
+            }
+        }
+
+        public static Dictionary<ModKey, string> initPluginDirectoryDict(NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            Dictionary<ModKey, string> PluginDirectoryDict = new Dictionary<ModKey, string>();
+            if (settings.MO2DataPath == null || settings.MO2DataPath.Length == 0)
+            {
+                return PluginDirectoryDict;
+            }
+
+            foreach (var mk in settings.PluginsToForward)
+            {
+                if (mk.Plugin != null)
+                {
+                    switch (settings.Mode)
+                    {
+                        case Mode.Deep:
+                            bool dirFound = false;
+                            foreach (var dirName in Directory.GetDirectories(settings.MO2DataPath))
+                            {
+                                string potentialPath = Path.Join(dirName, mk.Plugin.ToString());
+                                if (File.Exists(potentialPath))
+                                {
+                                    PluginDirectoryDict.Add(mk.Plugin, dirName);
+                                    dirFound = true;
+                                    break;
+                                }
+                            }
+                            if (dirFound == false)
+                            {
+                                throw new Exception("Cannot find any folder within " + settings.MO2DataPath + " that contains plugin " + mk.Plugin.ToString());
+                            }
+                            break;
+
+                        case Mode.Simple:
+                            PluginDirectoryDict.Add(mk.Plugin, state.DataFolderPath);
+                            break;
+                    }
+                }
+            }
+            return PluginDirectoryDict;
+        }
+
+        public static void copyAssets(Npc npc, NAPFsettings settings, string currentModDirectory, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            HashSet<string> meshes = new HashSet<string>();
+            HashSet<string> textures = new HashSet<string>();
+
+            //headparts
+            foreach (var hp in npc.HeadParts)
+            {
+                if (!settings.PluginsExcludedFromMerge.Contains(hp.FormKey.ModKey))
+                {
+                    getHeadPartAssetPaths(hp, textures, meshes, settings.PluginsExcludedFromMerge, state);
+                }
+            }
+
+            // armor and armature
+            if (npc.WornArmor != null && state.LinkCache.TryResolve<IArmorGetter>(npc.WornArmor.FormKey, out var wnamGetter) && wnamGetter.Armature != null)
+            {
+                foreach (var aa in wnamGetter.Armature)
+                {
+                    if (!settings.PluginsExcludedFromMerge.Contains(aa.FormKey.ModKey))
+                    {
+                        {
+                            getARMAAssetPaths(aa, textures, meshes, settings.PluginsExcludedFromMerge, state);
+                        }
+                    }
+                }
+            }
+
+            // copy files
+            copyAssetFiles(settings.AssetOutputDirectory, currentModDirectory, settings.pathsToIgnore, meshes, "Meshes");
+            copyAssetFiles(settings.AssetOutputDirectory, currentModDirectory, settings.pathsToIgnore, textures, "Textures");
+        }
+
+        public static void copyAssetFiles(string outputPath, string dataPath, HashSet<string> toIgnore, HashSet<string> assetPathList, string type)
+        {
+            string prepend = Path.Combine(outputPath, type);
+            if (Directory.Exists(prepend) == false)
+            {
+                Directory.CreateDirectory(prepend);
+            }
+
+            foreach (string s in assetPathList)
+            {
+                if (!isIgnored(s, toIgnore))
+                {
+                    string currentPath = Path.Join(dataPath, type, s);
+                    if (File.Exists(currentPath) == false)
+                    {
+                        Console.WriteLine("Warning: File " + currentPath + " was not found.");
+                    }
+                    else
+                    {
+                        string destPath = Path.Join(prepend, s);
+
+                        FileInfo fileInfo = new FileInfo(destPath);
+                        if (fileInfo != null && fileInfo.Directory != null && !fileInfo.Directory.Exists)
+                        {
+                            Directory.CreateDirectory(fileInfo.Directory.FullName);
+                        }
+
+                        File.Copy(currentPath, destPath, true);
+                    }
+                }
+            }
+        }
+
+        public static bool isIgnored (string s, HashSet<string> toIgnore)
+        {
+            string l = s.ToLower();
+            foreach (string ig in toIgnore)
+            {
+                if (ig.ToLower() == l)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static void getARMAAssetPaths(IFormLinkGetter<IArmorAddonGetter> aa, HashSet<string> texturePaths, HashSet<string> meshPaths, HashSet<ModKey> PluginsExcludedFromMerge, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            if (!state.LinkCache.TryResolve<IArmorAddonGetter>(aa.FormKey, out var aaGetter))
+            {
+                return;
+            }
+
+            if (aaGetter.WorldModel != null && aaGetter.WorldModel.Male != null && aaGetter.WorldModel.Male.File != null)
+            {
+                meshPaths.Add(aaGetter.WorldModel.Male.File);
+            }
+            if (aaGetter.WorldModel != null && aaGetter.WorldModel.Female != null && aaGetter.WorldModel.Female.File != null)
+            {
+                meshPaths.Add(aaGetter.WorldModel.Female.File);
+            }
+
+            if (aaGetter.SkinTexture != null && aaGetter.SkinTexture.Male != null && !PluginsExcludedFromMerge.Contains(aaGetter.SkinTexture.Male.FormKey.ModKey) && state.LinkCache.TryResolve<ITextureSetGetter>(aaGetter.SkinTexture.Male.FormKey, out var mSkinTxst))
+            {
+                getTextureSetPaths(mSkinTxst, texturePaths);
+            }
+            if (aaGetter.SkinTexture != null && aaGetter.SkinTexture.Female != null && !PluginsExcludedFromMerge.Contains(aaGetter.SkinTexture.Female.FormKey.ModKey) && state.LinkCache.TryResolve<ITextureSetGetter>(aaGetter.SkinTexture.Female.FormKey, out var fSkinTxst))
+            {
+                getTextureSetPaths(fSkinTxst, texturePaths);
+            }
+        }
+
+        public static void getHeadPartAssetPaths(IFormLinkGetter<IHeadPartGetter> hp, HashSet<string> texturePaths, HashSet<string> meshPaths, HashSet<ModKey> PluginsExcludedFromMerge, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            if (!state.LinkCache.TryResolve<IHeadPartGetter>(hp.FormKey, out var hpGetter))
+            {
+                return;
+            }
+
+            if (hpGetter.Model != null && hpGetter.Model.File != null)
+            {
+                meshPaths.Add(hpGetter.Model.File);
+            }
+
+            if (hpGetter.Parts != null)
+            {
+                foreach (var part in hpGetter.Parts)
+                {
+                    if (part.FileName != null)
+                    {
+                        meshPaths.Add(part.FileName);
+                    }
+                }
+            }
+
+            if (hpGetter.TextureSet != null && state.LinkCache.TryResolve<ITextureSetGetter>(hpGetter.TextureSet.FormKey, out var hTxst))
+            {
+                getTextureSetPaths(hTxst, texturePaths);
+            }
+
+            if (hpGetter.ExtraParts != null)
+            {
+                foreach (var EP in hpGetter.ExtraParts)
+                {
+                    if (!PluginsExcludedFromMerge.Contains(EP.FormKey.ModKey))
+                    {
+                        getHeadPartAssetPaths(EP, texturePaths, meshPaths, PluginsExcludedFromMerge, state);
+                    }
+                }
+            }
+        }
+
+        public static void getTextureSetPaths(ITextureSetGetter Txst, HashSet<string> texturePaths)
+        {
+            if (Txst.Diffuse != null)
+            {
+                texturePaths.Add(Txst.Diffuse);
+            }
+            if (Txst.NormalOrGloss != null)
+            {
+                texturePaths.Add(Txst.NormalOrGloss);
+            }
+            if (Txst.BacklightMaskOrSpecular != null)
+            {
+                texturePaths.Add(Txst.BacklightMaskOrSpecular);
+            }
+            if (Txst.Environment != null)
+            {
+                texturePaths.Add(Txst.Environment);
+            }
+            if (Txst.EnvironmentMaskOrSubsurfaceTint != null)
+            {
+                texturePaths.Add(Txst.EnvironmentMaskOrSubsurfaceTint);
+            }
+            if (Txst.GlowOrDetailMap != null)
+            {
+                texturePaths.Add(Txst.GlowOrDetailMap);
             }
         }
     }

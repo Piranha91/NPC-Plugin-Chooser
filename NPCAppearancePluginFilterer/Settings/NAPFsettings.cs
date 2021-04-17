@@ -10,8 +10,16 @@ using Mutagen.Bethesda.Skyrim;
 
 namespace NPCAppearancePluginFilterer.Settings
 {
-    class NAPFsettings
+    public class NAPFsettings
     {
+        [SynthesisOrder]
+        [SynthesisTooltip("Simple: assumes that the NPC records and associated meshes and textures are conflict winners.\nDeep: Searches through conflict losers as well as winners to forward the correct records (requires MO2 path to be set).")]
+        public Mode Mode { get; set; } = Mode.Simple;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("Path of your MO2\\mods folder. Can be left blank if using Simple Mode.")]
+        public string MO2DataPath { get; set; } = "";
+
         [SynthesisOrder]
         [SynthesisTooltip("Plugins from which NPC appearance should be forwarded.")]
         public HashSet<PerPluginSettings> PluginsToForward { get; set; } = new HashSet<PerPluginSettings>();
@@ -19,9 +27,122 @@ namespace NPCAppearancePluginFilterer.Settings
         [SynthesisOrder]
         [SynthesisTooltip("Directory to which meshes and textures should be copied.")]
         public string AssetOutputDirectory { get; set; } = "";
+
+        [SynthesisOrder]
+        [SynthesisTooltip("The following plugins will never have their assets merged into Synthesis.esp or copied to the output directory. Don't touch unless you know what you're doing.")]
+        public HashSet<ModKey> PluginsExcludedFromMerge = new HashSet<ModKey>()
+        {
+            ModKey.FromNameAndExtension("Skyrim.esm"),
+            ModKey.FromNameAndExtension("Update.esm"),
+            ModKey.FromNameAndExtension("Dawnguard.esm"),
+            ModKey.FromNameAndExtension("HearthFires.esm"),
+            ModKey.FromNameAndExtension("Dragonborn.esm")
+        };
+
+        [SynthesisIgnoreSetting]
+        public HashSet<string> pathsToIgnore = new HashSet<string>()
+        {
+            // Meshes folder
+            "Actors\\Character\\Character Assets\\MaleBody_0.NIF",
+            "Actors\\Character\\Character Assets\\FemaleBody_0.NIF",
+            "Actors\\Character\\Character Assets\\MaleHands_0.nif",
+            "Actors\\Character\\Character Assets\\FemaleHands_0.nif",
+            "Actors\\Character\\Character Assets\\MaleFeet_0.nif",
+            "Actors\\Character\\Character Assets\\FemaleFeet_0.nif",
+            "Actors\\Character\\Character Assets\\MaleBody_1.NIF",
+            "Actors\\Character\\Character Assets\\FemaleBody_1.NIF",
+            "Actors\\Character\\Character Assets\\MaleHands_1.nif",
+            "Actors\\Character\\Character Assets\\FemaleHands_1.nif",
+            "Actors\\Character\\Character Assets\\MaleFeet_1.nif",
+            "Actors\\Character\\Character Assets\\FemaleFeet_1.nif",
+
+            //tri
+            "Actors\\Character\\Character Assets\\FemaleHeadRaces.tri",
+            "Actors\\Character\\Character Assets\\FemaleHead.tri",
+            "Actors\\Character\\Character Assets\\FemaleHeadCharGen.tri",
+
+            //misc
+            "Actors\\Character\\Character Assets\\FaceParts\\FemaleBrows.nif",
+
+            //Textures Folder
+
+
+            //human body
+            "Actors\\Character\\Male\\MaleBody_1.dds",
+            "Actors\\Character\\Male\\MaleBody_1_msn.dds",
+            "Actors\\Character\\Male\\MaleBody_1_sk.dds",
+            "Actors\\Character\\Male\\MaleBody_1_S.dds",
+            "Actors\\Character\\Female\\FemaleBody_1.dds",
+            "Actors\\Character\\Female\\FemMaleBody_1_msn.dds",
+            "Actors\\Character\\Female\\FemaleBody_1_sk.dds",
+            "Actors\\Character\\Female\\FemaleBody_1_S.dds",
+
+            "Actors\\Character\\Male\\MaleBodyAfflicted.dds",
+            "Actors\\Character\\Male\\MaleBodySnowElf.dds",
+            //human hands
+            
+            "Actors\\Character\\Male\\MaleHands_1.dds",
+            "Actors\\Character\\Male\\MaleHands_1_msn.dds",
+            "Actors\\Character\\Male\\MaleHands_1_sk.dds",
+            "Actors\\Character\\Male\\MaleHands_1_S.dds",
+            "Actors\\Character\\Female\\FemaleHands_1.dds",
+            "Actors\\Character\\Female\\FemMaleHands_1_msn.dds",
+            "Actors\\Character\\Female\\FemaleHands_1_sk.dds",
+            "Actors\\Character\\Female\\FemaleHands_1_S.dds",
+
+            "Actors\\Character\\Male\\MaleHandsAfflicted.dds",
+            "Actors\\Character\\Male\\MaleHandsSnowElf.dds",
+            
+            //human head
+            "Actors\\Character\\Male\\blankdetailmap.dds",
+
+            "Actors\\Character\\Male\\MaleHead.dds",
+            "Actors\\Character\\Male\\MaleHead_msn.dds",
+            "Actors\\Character\\Male\\MaleHead_sk.dds",
+            "Actors\\Character\\Male\\MaleHead_S.dds",
+
+            "Actors\\Character\\Male\\MaleHeadAfflicted.dds",
+            "Actors\\Character\\Male\\MaleHeadSnowElf.dds",
+            "Actors\\Character\\Male\\MaleHeadVampire.dds",
+            "Actors\\Character\\Male\\MaleHeadVampire_msn.dds",
+
+            "Actors\\Character\\Male\\MaleHeadDetail_Age40.dds",
+            "Actors\\Character\\Male\\MaleHeadDetail_Age40Rough.dds",
+            "Actors\\Character\\Male\\MaleHeadDetail_Age50.dds",
+            "Actors\\Character\\Male\\MaleHeadDetail_Rough01.dds",
+            "Actors\\Character\\Male\\MaleHeadDetail_Rough02.dds",
+
+            "Actors\\Character\\Female\\FemaleHead.dds",
+            "Actors\\Character\\Female\\FemaleHead_msn.dds",
+            "Actors\\Character\\Female\\FemaleHead_sk.dds",
+            "Actors\\Character\\Female\\FemaleHead_S.dds",
+
+            "Actors\\Character\\Female\\FemaleHeadAfflicted.dds",
+            "Actors\\Character\\Female\\FemaleHeadVampire.dds",
+            "Actors\\Character\\Female\\FemaleHeadVampire_msn.dds",
+
+            "Actors\\Character\\Female\\FemaleHeadDetail_Age40.dds",
+            "Actors\\Character\\Female\\FemaleHeadDetail_Age40Rough.dds",
+            "Actors\\Character\\Female\\FemaleHeadDetail_Age50.dds",
+            "Actors\\Character\\Female\\FemaleHeadDetail_Rough.dds",
+            "Actors\\Character\\Female\\FemaleHeadDetail_Frekles.dds",
+
+            "Actors\\Character\\BretonFemale\\FemaleHead_msn.dds"
+
+            
+
+            //argonian body
+
+        };
     }
 
-    class PerPluginSettings
+    public enum Mode
+    {
+        Simple,
+        Deep
+    }
+
+    public class PerPluginSettings
     {
         [SynthesisOrder]
         [SynthesisTooltip("Plugin")]
