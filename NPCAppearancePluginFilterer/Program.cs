@@ -7,6 +7,8 @@ using Mutagen.Bethesda.Skyrim;
 using System.Threading.Tasks;
 using System.IO;
 using NPCAppearancePluginFilterer.Settings;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace NPCAppearancePluginFilterer
 {
@@ -21,7 +23,7 @@ namespace NPCAppearancePluginFilterer
                     path: "settings.json",
                     out Settings)
                 .AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
-                .SetTypicalOpen(GameRelease.SkyrimSE, "YourPatcher.esp")
+                .SetTypicalOpen(GameRelease.SkyrimSE, "NAPF Output.esp")
                 .Run(args);
         }
 
@@ -44,6 +46,8 @@ namespace NPCAppearancePluginFilterer
             NAPFsettings settings = Settings.Value;
 
             Dictionary<ModKey, string> PluginDirectoryDict = initPluginDirectoryDict(settings, state);
+
+            getWarningsToSuppress(settings, state);
 
             foreach (var PPS in settings.PluginsToForward)
             {
@@ -79,6 +83,33 @@ namespace NPCAppearancePluginFilterer
                 //remap dependencies
                 Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
                 state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
+            }
+        }
+
+        public static void getWarningsToSuppress(NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            string settingsPath = Path.Combine(state.ExtraSettingsDataPath, "Warnings To Suppress.json");
+            if (!File.Exists(settingsPath) && settings.SuppressKnownMissingFileWarnings)
+            {
+                throw new Exception("Could not find the list of known missing files (expected at: " + settingsPath + ").");
+            }
+
+            try
+            {
+                var tempJArray = JArray.Parse(File.ReadAllText(settingsPath));
+                foreach (var s in tempJArray)
+                {
+                    settings.warningsToSuppress.Add(s.ToString().Replace(@"\\", @"\"));
+                }
+
+                if (settings.SuppressKnownMissingFileWarnings)
+                {
+                    Console.WriteLine("Found list of known missing files to suppress (contains {0} entries).", settings.warningsToSuppress.Count);
+                }
+            }
+            catch
+            {
+                throw new Exception("Could not parse the list of known missing files (expected at: " + settingsPath + ").");
             }
         }
 
@@ -151,14 +182,19 @@ namespace NPCAppearancePluginFilterer
                 }
             }
 
+            //FaceGen
+            meshes.Add("actors\\character\\facegendata\\facegeom\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".nif");
+            textures.Add("actors\\character\\facegendata\\facetint\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".dds");
+
             // copy files
-            copyAssetFiles(settings.AssetOutputDirectory, currentModDirectory, settings.pathsToIgnore, meshes, "Meshes");
-            copyAssetFiles(settings.AssetOutputDirectory, currentModDirectory, settings.pathsToIgnore, textures, "Textures");
+            copyAssetFiles(settings, currentModDirectory, meshes, "Meshes");
+            copyAssetFiles(settings, currentModDirectory, textures, "Textures");
         }
 
-        public static void copyAssetFiles(string outputPath, string dataPath, HashSet<string> toIgnore, HashSet<string> assetPathList, string type)
+        public static void copyAssetFiles(NAPFsettings settings, string dataPath, HashSet<string> assetPathList, string type)
         {
-            string prepend = Path.Combine(outputPath, type);
+            
+            string prepend = Path.Combine(settings.AssetOutputDirectory, type);
             if (Directory.Exists(prepend) == false)
             {
                 Directory.CreateDirectory(prepend);
@@ -166,12 +202,15 @@ namespace NPCAppearancePluginFilterer
 
             foreach (string s in assetPathList)
             {
-                if (!isIgnored(s, toIgnore))
+                if (!isIgnored(s, settings.pathsToIgnore))
                 {
                     string currentPath = Path.Join(dataPath, type, s);
                     if (File.Exists(currentPath) == false)
                     {
-                        Console.WriteLine("Warning: File " + currentPath + " was not found.");
+                        if (!(settings.SuppressKnownMissingFileWarnings && settings.warningsToSuppress.Contains(s))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
+                        {
+                            Console.WriteLine("Warning: File " + currentPath + " was not found.");
+                        }
                     }
                     else
                     {

@@ -7,6 +7,8 @@ using Noggog;
 using Mutagen.Bethesda.Synthesis.Settings;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Skyrim;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace NPCAppearancePluginFilterer.Settings
 {
@@ -27,6 +29,10 @@ namespace NPCAppearancePluginFilterer.Settings
         [SynthesisOrder]
         [SynthesisTooltip("Directory to which meshes and textures should be copied.")]
         public string AssetOutputDirectory { get; set; } = "";
+
+        [SynthesisOrder]
+        [SynthesisTooltip("Some plugins reference files that don't exist in their own download - for example the Bijin series references a bunch of .tri files that don't ship with the mod. While I can't account for every mod that exists, this settings suppresses \"file could not be found\" warnings from mods with known missing files so that any warnings you do see are more likely to be real.")]
+        public bool SuppressKnownMissingFileWarnings { get; set; } = true;
 
         [SynthesisOrder]
         [SynthesisTooltip("The following plugins will never have their assets merged into Synthesis.esp or copied to the output directory. Don't touch unless you know what you're doing.")]
@@ -134,6 +140,9 @@ namespace NPCAppearancePluginFilterer.Settings
             //argonian body
 
         };
+
+        [SynthesisIgnoreSetting]
+        public HashSet<string> warningsToSuppress { get; set; } = new HashSet<string>();
     }
 
     public enum Mode
