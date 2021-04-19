@@ -31,15 +31,19 @@ namespace NPCAppearancePluginFilterer.Settings
         public string AssetOutputDirectory { get; set; } = "";
 
         [SynthesisOrder]
+        [SynthesisTooltip("If checked, the output directory's contents will be cleared between each run (so that if an NPC is removed from your transfer list, their associated meshes and textures won't remain).")]
+        public bool ClearAssetOutputDirectory { get; set; } = false;
+
+        [SynthesisOrder]
         [SynthesisTooltip("If checked, all detected resources required by each NPC will be copied (provided they reside in the same mod folder the the plugin. If unchecked, only facegen will be copied.")]
-        public bool CopyExtraAssets { get; set; } = false;
+        public bool CopyExtraAssets { get; set; } = false; 
 
         [SynthesisOrder]
         [SynthesisTooltip("Some plugins reference files that don't exist in their own download - for example the Bijin series references a bunch of .tri files that don't ship with the mod. While I can't account for every mod that exists, this settings suppresses \"file could not be found\" warnings from mods with known missing files so that any warnings you do see are more likely to be real.")]
         public bool SuppressKnownMissingFileWarnings { get; set; } = true;
 
         [SynthesisOrder]
-        [SynthesisTooltip("The following plugins will never have their assets merged into Synthesis.esp or copied to the output directory. Don't touch unless you know what you're doing.")]
+        [SynthesisTooltip("The following plugins will never have their assets merged into the generated .esp or copied to the output directory. Don't touch unless you know what you're doing.")]
         public HashSet<ModKey> PluginsExcludedFromMerge = new HashSet<ModKey>()
         {
             ModKey.FromNameAndExtension("Skyrim.esm"),

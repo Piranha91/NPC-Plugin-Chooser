@@ -49,6 +49,19 @@ namespace NPCAppearancePluginFilterer
 
             getWarningsToSuppress(settings, state);
 
+            if (settings.AssetOutputDirectory != "" && Directory.Exists(settings.AssetOutputDirectory) && settings.ClearAssetOutputDirectory)
+            {
+                DirectoryInfo di = new DirectoryInfo(settings.AssetOutputDirectory);
+                foreach (FileInfo file in di.EnumerateFiles())
+                {
+                    file.Delete();
+                }
+                foreach (DirectoryInfo dir in di.EnumerateDirectories())
+                {
+                    dir.Delete(true);
+                }
+            }
+
             foreach (var PPS in settings.PluginsToForward)
             {
                 Console.WriteLine("Processing {0}", PPS.Plugin.ToString());
