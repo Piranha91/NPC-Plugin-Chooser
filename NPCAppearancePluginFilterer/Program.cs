@@ -9,7 +9,9 @@ using System.IO;
 using NPCAppearancePluginFilterer.Settings;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Converters;
 using Noggog.Utility;
+using Mutagen.Bethesda.Json;
 
 namespace NPCAppearancePluginFilterer
 {
@@ -85,10 +87,17 @@ namespace NPCAppearancePluginFilterer
                 }
 
                 // write output settings here
+
+                var jsonSettings = new JsonSerializerSettings();
+                jsonSettings.Converters.Add(new StringEnumConverter());
+                jsonSettings.AddMutagenConverters();
+                jsonSettings.ObjectCreationHandling = ObjectCreationHandling.Replace;
+                jsonSettings.Formatting = Formatting.Indented;
+
                 var outputPath = Path.Combine(settings.AssetOutputDirectory, string.Format("settings_{0:yyyy-MM-dd_hh-mm-ss-tt}.json", DateTime.Now));
                 try
                 {
-                    string jsonStr = JsonConvert.SerializeObject(outputSettings, Formatting.Indented);
+                    string jsonStr = JsonConvert.SerializeObject(outputSettings, jsonSettings);
                     File.WriteAllText(outputPath, jsonStr);
                     Console.WriteLine("Wrote current settings to {0}. Use this file as a backup of your current settings by renaming it to \"settings.json\" and placing it into your Synthesis\\Data\\NPC-Appearance-Plugin-Filterer folder.", outputPath);
                 }
