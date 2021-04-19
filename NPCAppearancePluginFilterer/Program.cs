@@ -71,7 +71,7 @@ namespace NPCAppearancePluginFilterer
                         }
 
                         var npc = context.Record;
-                        if ((PPS.RemoveTheseNPCs == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.RemoveTheseNPCs == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
+                        if ((PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
                         {
                             Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
                             var NPCoverride = state.PatchMod.Npcs.GetOrAddAsOverride(npc);
@@ -159,32 +159,35 @@ namespace NPCAppearancePluginFilterer
             HashSet<string> meshes = new HashSet<string>();
             HashSet<string> textures = new HashSet<string>();
 
-            //headparts
-            foreach (var hp in npc.HeadParts)
-            {
-                if (!settings.PluginsExcludedFromMerge.Contains(hp.FormKey.ModKey))
-                {
-                    getHeadPartAssetPaths(hp, textures, meshes, settings.PluginsExcludedFromMerge, state);
-                }
-            }
+            //FaceGen
+            meshes.Add("actors\\character\\facegendata\\facegeom\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".nif");
+            textures.Add("actors\\character\\facegendata\\facetint\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".dds");
 
-            // armor and armature
-            if (npc.WornArmor != null && state.LinkCache.TryResolve<IArmorGetter>(npc.WornArmor.FormKey, out var wnamGetter) && wnamGetter.Armature != null)
+            if (settings.CopyExtraAssets)
             {
-                foreach (var aa in wnamGetter.Armature)
+                //headparts
+                foreach (var hp in npc.HeadParts)
                 {
-                    if (!settings.PluginsExcludedFromMerge.Contains(aa.FormKey.ModKey))
+                    if (!settings.PluginsExcludedFromMerge.Contains(hp.FormKey.ModKey))
                     {
+                        getHeadPartAssetPaths(hp, textures, meshes, settings.PluginsExcludedFromMerge, state);
+                    }
+                }
+
+                // armor and armature
+                if (npc.WornArmor != null && state.LinkCache.TryResolve<IArmorGetter>(npc.WornArmor.FormKey, out var wnamGetter) && wnamGetter.Armature != null)
+                {
+                    foreach (var aa in wnamGetter.Armature)
+                    {
+                        if (!settings.PluginsExcludedFromMerge.Contains(aa.FormKey.ModKey))
                         {
-                            getARMAAssetPaths(aa, textures, meshes, settings.PluginsExcludedFromMerge, state);
+                            {
+                                getARMAAssetPaths(aa, textures, meshes, settings.PluginsExcludedFromMerge, state);
+                            }
                         }
                     }
                 }
             }
-
-            //FaceGen
-            meshes.Add("actors\\character\\facegendata\\facegeom\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".nif");
-            textures.Add("actors\\character\\facegendata\\facetint\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".dds");
 
             // copy files
             copyAssetFiles(settings, currentModDirectory, meshes, "Meshes");

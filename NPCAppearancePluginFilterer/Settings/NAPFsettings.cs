@@ -31,6 +31,10 @@ namespace NPCAppearancePluginFilterer.Settings
         public string AssetOutputDirectory { get; set; } = "";
 
         [SynthesisOrder]
+        [SynthesisTooltip("If checked, all detected resources required by each NPC will be copied (provided they reside in the same mod folder the the plugin. If unchecked, only facegen will be copied.")]
+        public bool CopyExtraAssets { get; set; } = false;
+
+        [SynthesisOrder]
         [SynthesisTooltip("Some plugins reference files that don't exist in their own download - for example the Bijin series references a bunch of .tri files that don't ship with the mod. While I can't account for every mod that exists, this settings suppresses \"file could not be found\" warnings from mods with known missing files so that any warnings you do see are more likely to be real.")]
         public bool SuppressKnownMissingFileWarnings { get; set; } = true;
 
@@ -158,11 +162,12 @@ namespace NPCAppearancePluginFilterer.Settings
         public ModKey Plugin { get; set; } = new ModKey();
 
         [SynthesisOrder]
+        [SynthesisSettingName("NPCs")]
         [SynthesisTooltip("Click here to select which NPCs should have their appearance forwarded. If the NPC appears in multiple plugins, the load order conflict winner will be forwarded.")]
         public HashSet<IFormLinkGetter<INpcGetter>> NPCs { get; set; } = new HashSet<IFormLinkGetter<INpcGetter>>();
 
         [SynthesisOrder]
         [SynthesisTooltip("If checked, all NPCs in the chosen plugin EXCEPT the ones specified above will be forwarded.")]
-        public bool RemoveTheseNPCs { get; set; }
+        public bool InvertSelection { get; set; }
     }
 }
