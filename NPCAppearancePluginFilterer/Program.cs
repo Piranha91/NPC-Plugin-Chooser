@@ -9,6 +9,7 @@ using System.IO;
 using NPCAppearancePluginFilterer.Settings;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Noggog.Utility;
 
 namespace NPCAppearancePluginFilterer
 {
@@ -35,6 +36,11 @@ namespace NPCAppearancePluginFilterer
                 throw new Exception("Cannot find output directory specified in settings: " + settings.AssetOutputDirectory);
             }
 
+            if (settings.Mode != Mode.Simple && settings.MO2DataPath == "")
+            {
+                throw new Exception("MO2 Data Path must be set for any mode other than Simple.");
+            }
+
             if (settings.MO2DataPath != "" && !Directory.Exists(settings.MO2DataPath))
             {
                 throw new Exception("Cannot find the Mod Organizer 2 Mods folder specified in settings: " + settings.MO2DataPath);
@@ -44,6 +50,8 @@ namespace NPCAppearancePluginFilterer
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             NAPFsettings settings = Settings.Value;
+
+            NAPFsettings outputSettings = new NAPFsettings(); // only used if Mode == SettingsGen
 
             Dictionary<ModKey, string> PluginDirectoryDict = initPluginDirectoryDict(settings, state);
 
@@ -62,41 +70,161 @@ namespace NPCAppearancePluginFilterer
                 }
             }
 
-            foreach (var PPS in settings.PluginsToForward)
+            if (settings.Mode == Mode.SettingsGen)
             {
-                Console.WriteLine("Processing {0}", PPS.Plugin.ToString());
-
-                if (PluginDirectoryDict.ContainsKey(PPS.Plugin) == false)
-                {
-                    throw new Exception("Plugin -> Folder dictionary does not contain an entry for plugin " + PPS.Plugin.ToString());
-                }
-                string currentDataDir = PluginDirectoryDict[PPS.Plugin];
+                outputSettings.AssetOutputDirectory = settings.AssetOutputDirectory;
+                outputSettings.ClearAssetOutputDirectory = settings.ClearAssetOutputDirectory;
+                outputSettings.CopyExtraAssets = settings.CopyExtraAssets;
+                outputSettings.MO2DataPath = settings.MO2DataPath;
+                outputSettings.Mode = Mode.Deep;
+                outputSettings.SuppressKnownMissingFileWarnings = settings.SuppressKnownMissingFileWarnings;
 
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
-                    var npcWinner = npcCO.Record;
-                    string NPCdispStr = npcWinner.Name + " | " + npcWinner.EditorID + " | " + npcWinner.FormKey.ToString();
-                    foreach (var context in state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey))
-                    {
-                        if (context.ModKey != PPS.Plugin)
-                        {
-                            continue;
-                        }
-
-                        var npc = context.Record;
-                        if ((PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
-                        {
-                            Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
-                            var NPCoverride = state.PatchMod.Npcs.GetOrAddAsOverride(npc);
-                            copyAssets(NPCoverride, settings, currentDataDir, state);
-                        }
-                    }
+                    generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state);
                 }
 
-                //remap dependencies
-                Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
-                state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
+                // write output settings here
+                var outputPath = Path.Combine(settings.AssetOutputDirectory, string.Format("settings_{0:yyyy-MM-dd_hh-mm-ss-tt}.json", DateTime.Now));
+                try
+                {
+                    string jsonStr = JsonConvert.SerializeObject(outputSettings, Formatting.Indented);
+                    File.WriteAllText(outputPath, jsonStr);
+                    Console.WriteLine("Wrote current settings to {0}. Use this file as a backup of your current settings by renaming it to \"settings.json\" and placing it into your Synthesis\\Data\\NPC-Appearance-Plugin-Filterer folder.", outputPath);
+                }
+                catch
+                {
+                    throw new Exception("Could not write the generated settings object to " + outputPath);
+                }
             }
+
+            else
+            {
+                foreach (var PPS in settings.PluginsToForward)
+                {
+                    Console.WriteLine("Processing {0}", PPS.Plugin.ToString());
+
+                    if (PluginDirectoryDict.ContainsKey(PPS.Plugin) == false)
+                    {
+                        throw new Exception("Plugin -> Folder dictionary does not contain an entry for plugin " + PPS.Plugin.ToString());
+                    }
+                    string currentDataDir = PluginDirectoryDict[PPS.Plugin];
+
+                    foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
+                    {
+                        var npcWinner = npcCO.Record;
+                        string NPCdispStr = npcWinner.Name + " | " + npcWinner.EditorID + " | " + npcWinner.FormKey.ToString();
+                        foreach (var context in state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey))
+                        {
+                            if (context.ModKey != PPS.Plugin)
+                            {
+                                continue;
+                            }
+
+                            var npc = context.Record;
+                            if ((PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
+                            {
+                                Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
+                                var NPCoverride = state.PatchMod.Npcs.GetOrAddAsOverride(npc);
+                                copyAssets(NPCoverride, settings, currentDataDir, state);
+                            }
+                        }
+                    }
+
+                    //remap dependencies
+                    Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
+                    state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
+                }
+            }
+        }
+
+        public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, NAPFsettings settings, NAPFsettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            // skip NPC if it has no modded facegen
+            if (faceGenExists(npcCO, state) == false)
+            {
+                return;
+            }
+
+            foreach (var context in state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey))
+            {
+                if (settings.PluginsExcludedFromMerge.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey) // if the current plugin is from the excluded list, or if it is the base plugin, skip
+                {
+                    continue;
+                }
+
+                if (!PluginDirectoryDict.ContainsKey(context.ModKey)) { continue; } // possible if source plugin is in the overwrite folder, in which case it should be ignored
+
+                string currentDataDir = PluginDirectoryDict[context.ModKey];
+
+                // check if NPC's facegen matches the winning facegen
+                if (checkFaceGenMatch(context, currentDataDir, state) == true)
+                {
+                    // get the relevant plugin settings object
+                    var currentPPS = new PerPluginSettings();
+                    bool foundCurrentPPS = false;
+                    foreach (var PPS in outputSettings.PluginsToForward)
+                    {
+                        if (PPS.Plugin == context.ModKey)
+                        {
+                            currentPPS = PPS;
+                            foundCurrentPPS = true;
+                            break;
+                        }
+                    }
+                    if (foundCurrentPPS == false)
+                    {
+                        currentPPS.Plugin = context.ModKey;
+                        currentPPS.InvertSelection = false;
+                        outputSettings.PluginsToForward.Add(currentPPS);
+                    }
+
+                    currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
+                }
+            }
+        }
+
+        public static bool faceGenExists(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
+            if (File.Exists(Path.Combine(state.DataFolderPath, "meshes", FaceGenSubPaths.Item1)) == false) { return false; }
+            if (File.Exists(Path.Combine(state.DataFolderPath, "textures", FaceGenSubPaths.Item2)) == false) { return false; }
+            return true;
+        }
+
+        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, string currentModDir, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
+
+            string modMeshPath = Path.Combine(currentModDir, "meshes", FaceGenSubPaths.Item1);
+
+            if (File.Exists(modMeshPath) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            {
+                return false;
+            }
+
+            string winnerMeshPath = Path.Combine(state.DataFolderPath, "meshes", FaceGenSubPaths.Item1); 
+
+            if (FileComparison.FilesAreEqual(modMeshPath, winnerMeshPath) == false) 
+            {
+                return false;
+            }
+
+            string modTexPath = Path.Combine(currentModDir, "textures", FaceGenSubPaths.Item2); 
+            
+            if (File.Exists(modTexPath) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            {
+                return false;
+            }
+
+            string winnerTexPath = Path.Combine(state.DataFolderPath, "textures", FaceGenSubPaths.Item2);
+
+            if (FileComparison.FilesAreEqual(modTexPath, winnerTexPath) == false)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public static void getWarningsToSuppress(NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
@@ -134,33 +262,61 @@ namespace NPCAppearancePluginFilterer
                 return PluginDirectoryDict;
             }
 
-            foreach (var mk in settings.PluginsToForward)
+            if (settings.Mode == Mode.SettingsGen)
             {
-                if (mk.Plugin != null)
+                foreach (var mkPair in state.LoadOrder)
                 {
-                    switch (settings.Mode)
-                    {
-                        case Mode.Deep:
-                            bool dirFound = false;
-                            foreach (var dirName in Directory.GetDirectories(settings.MO2DataPath))
-                            {
-                                string potentialPath = Path.Join(dirName, mk.Plugin.ToString());
-                                if (File.Exists(potentialPath))
-                                {
-                                    PluginDirectoryDict.Add(mk.Plugin, dirName);
-                                    dirFound = true;
-                                    break;
-                                }
-                            }
-                            if (dirFound == false)
-                            {
-                                throw new Exception("Cannot find any folder within " + settings.MO2DataPath + " that contains plugin " + mk.Plugin.ToString());
-                            }
-                            break;
+                    var mk = mkPair.Key;
 
-                        case Mode.Simple:
-                            PluginDirectoryDict.Add(mk.Plugin, state.DataFolderPath);
+                    if (settings.PluginsExcludedFromMerge.Contains(mk)) { continue; } // ignore master files
+
+                    bool dirFound = false;
+                    foreach (var dirName in Directory.GetDirectories(settings.MO2DataPath))
+                    {
+                        string potentialPath = Path.Join(dirName, mk.ToString());
+                        if (File.Exists(potentialPath))
+                        {
+                            PluginDirectoryDict.Add(mk, dirName);
+                            dirFound = true;
                             break;
+                        }
+                    }
+                    if (dirFound == false)
+                    {
+                        Console.WriteLine("Could not find a mod folder for plugin {0}. Assuming this plugin is in the Overwrite folder and is not an appearance-related plugin.", mk.ToString());
+                    }
+                }
+            }
+            else
+            {
+                foreach (var PPS in settings.PluginsToForward)
+                {
+                    if (PPS.Plugin != null)
+                    {
+                        switch (settings.Mode)
+                        {
+                            case Mode.Deep:
+                                bool dirFound = false;
+                                foreach (var dirName in Directory.GetDirectories(settings.MO2DataPath))
+                                {
+                                    string potentialPath = Path.Join(dirName, PPS.Plugin.ToString());
+                                    if (File.Exists(potentialPath))
+                                    {
+                                        PluginDirectoryDict.Add(PPS.Plugin, dirName);
+                                        dirFound = true;
+                                        break;
+                                    }
+                                }
+                                if (dirFound == false)
+                                {
+                                    throw new Exception("Cannot find any folder within " + settings.MO2DataPath + " that contains plugin " + PPS.Plugin.ToString());
+                                }
+                                break;
+
+                            case Mode.Simple:
+                                PluginDirectoryDict.Add(PPS.Plugin, state.DataFolderPath);
+                                break;
+                        }
                     }
                 }
             }
@@ -173,8 +329,11 @@ namespace NPCAppearancePluginFilterer
             HashSet<string> textures = new HashSet<string>();
 
             //FaceGen
-            meshes.Add("actors\\character\\facegendata\\facegeom\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".nif");
-            textures.Add("actors\\character\\facegendata\\facetint\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".dds");
+            var FaceGenSubPaths = getFaceGenSubPathStrings(npc.FormKey);
+            meshes.Add(FaceGenSubPaths.Item1);
+            textures.Add(FaceGenSubPaths.Item2);
+            //meshes.Add("actors\\character\\facegendata\\facegeom\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".nif");
+            //textures.Add("actors\\character\\facegendata\\facetint\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".dds");
 
             if (settings.CopyExtraAssets)
             {
@@ -205,6 +364,13 @@ namespace NPCAppearancePluginFilterer
             // copy files
             copyAssetFiles(settings, currentModDirectory, meshes, "Meshes");
             copyAssetFiles(settings, currentModDirectory, textures, "Textures");
+        }
+
+        public static (string, string) getFaceGenSubPathStrings(FormKey npcFormKey)
+        {
+            string meshPath = "actors\\character\\facegendata\\facegeom\\" + npcFormKey.ModKey.ToString() + "\\00" + npcFormKey.IDString() + ".nif";
+            string texPath = "actors\\character\\facegendata\\facetint\\" + npcFormKey.ModKey.ToString() + "\\00" + npcFormKey.IDString() + ".dds";
+            return (meshPath, texPath);
         }
 
         public static void copyAssetFiles(NAPFsettings settings, string dataPath, HashSet<string> assetPathList, string type)
