@@ -59,21 +59,14 @@ namespace NPCAppearancePluginFilterer
 
             getWarningsToSuppress(settings, state);
 
-            if (settings.AssetOutputDirectory != "" && Directory.Exists(settings.AssetOutputDirectory) && settings.ClearAssetOutputDirectory)
+            if (settings.AssetOutputDirectory != "" && Directory.Exists(settings.AssetOutputDirectory) && settings.ClearAssetOutputDirectory && settings.Mode != Mode.SettingsGen)
             {
-                DirectoryInfo di = new DirectoryInfo(settings.AssetOutputDirectory);
-                foreach (FileInfo file in di.EnumerateFiles())
-                {
-                    file.Delete();
-                }
-                foreach (DirectoryInfo dir in di.EnumerateDirectories())
-                {
-                    dir.Delete(true);
-                }
+                clearOuptutDir(settings);
             }
 
             if (settings.Mode == Mode.SettingsGen)
             {
+                string settingsDirName = "NAPF Settings";
                 outputSettings.AssetOutputDirectory = settings.AssetOutputDirectory;
                 outputSettings.ClearAssetOutputDirectory = settings.ClearAssetOutputDirectory;
                 outputSettings.CopyExtraAssets = settings.CopyExtraAssets;
@@ -94,9 +87,18 @@ namespace NPCAppearancePluginFilterer
                 jsonSettings.ObjectCreationHandling = ObjectCreationHandling.Replace;
                 jsonSettings.Formatting = Formatting.Indented;
 
-                var outputPath = Path.Combine(settings.AssetOutputDirectory, string.Format("settings_{0:yyyy-MM-dd_hh-mm-ss-tt}.json", DateTime.Now));
+                var outputPath = Path.Combine(settings.AssetOutputDirectory, settingsDirName, string.Format("settings_{0:yyyy-MM-dd_hh-mm-ss-tt}.json", DateTime.Now));
                 try
                 {
+                    if (Directory.Exists(settings.AssetOutputDirectory) == false)
+                    {
+                        Directory.CreateDirectory(settings.AssetOutputDirectory);
+                    }
+                    if (Directory.Exists (Path.Combine(settings.AssetOutputDirectory, settingsDirName)) == false)
+                    {
+                        Directory.CreateDirectory(Path.Combine(settings.AssetOutputDirectory, settingsDirName));
+                    }
+
                     string jsonStr = JsonConvert.SerializeObject(outputSettings, jsonSettings);
                     File.WriteAllText(outputPath, jsonStr);
                     Console.WriteLine("Wrote current settings to {0}. Use this file as a backup of your current settings by renaming it to \"settings.json\" and placing it into your Synthesis\\Data\\NPC-Appearance-Plugin-Filterer folder.", outputPath);
@@ -134,8 +136,21 @@ namespace NPCAppearancePluginFilterer
                             if ((PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
                             {
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
+                                if (faceGenExists(npcCO, currentDataDir, PPS.ExtraDataDirectories, state) == false)
+                                {
+                                    if (settings.AbortIfMissingFaceGen)
+                                    {
+                                        throw new Exception("Missing expected FaceGen for NPC " + NPCdispStr + " in folder " + currentDataDir + " (obtained based on plugin " + PPS.Plugin.ToString() + ")");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("WARNING: " + "Missing expected FaceGen for NPC " + NPCdispStr + " in folder " + currentDataDir + " (obtained based on plugin " + PPS.Plugin.ToString() + ")");
+                                    }
+                                }
+
                                 var NPCoverride = state.PatchMod.Npcs.GetOrAddAsOverride(npc);
-                                copyAssets(NPCoverride, settings, currentDataDir, state);
+                                copyAssets(NPCoverride, settings, currentDataDir, PPS.ExtraDataDirectories, state);
+                                break;
                             }
                         }
                     }
@@ -147,10 +162,40 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
+        public static void clearOuptutDir(NAPFsettings settings)
+        {
+            string mPath = Path.Combine(settings.AssetOutputDirectory, "meshes");
+            if (Directory.Exists(mPath))
+            {
+                DirectoryInfo diM = new DirectoryInfo(mPath);
+                foreach (FileInfo file in diM.EnumerateFiles())
+                {
+                    file.Delete();
+                }
+                foreach (DirectoryInfo dir in diM.EnumerateDirectories())
+                {
+                    dir.Delete(true);
+                }
+            }
+
+            string tPath = Path.Combine(settings.AssetOutputDirectory, "textures");
+            if (Directory.Exists(tPath))
+            {
+                DirectoryInfo diM = new DirectoryInfo(tPath);
+                foreach (FileInfo file in diM.EnumerateFiles())
+                {
+                    file.Delete();
+                }
+                foreach (DirectoryInfo dir in diM.EnumerateDirectories())
+                {
+                    dir.Delete(true);
+                }
+            }
+        }
         public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, NAPFsettings settings, NAPFsettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             // skip NPC if it has no modded facegen
-            if (faceGenExists(npcCO, state) == false)
+            if (faceGenExists(npcCO, state.DataFolderPath, new HashSet<string>(), state) == false)
             {
                 return;
             }
@@ -189,15 +234,62 @@ namespace NPCAppearancePluginFilterer
                     }
 
                     currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
+                    break;
                 }
             }
         }
 
-        public static bool faceGenExists(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static bool faceGenExists(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, string rootPath, HashSet<string> extraDataPaths, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
-            if (File.Exists(Path.Combine(state.DataFolderPath, "meshes", FaceGenSubPaths.Item1)) == false) { return false; }
-            if (File.Exists(Path.Combine(state.DataFolderPath, "textures", FaceGenSubPaths.Item2)) == false) { return false; }
+
+            // check for nif
+            bool bNifExists = false;
+            if (File.Exists(Path.Combine(rootPath, "meshes", FaceGenSubPaths.Item1)))
+            {
+                bNifExists = true;
+            }
+            else
+            {
+                foreach (string path in extraDataPaths)
+                {
+                    if (File.Exists(Path.Combine(rootPath, "meshes", FaceGenSubPaths.Item1)))
+                    {
+                        bNifExists = true;
+                        break;
+                    }
+                }
+            }
+
+            if (bNifExists == false)
+            {
+                return false;
+            }
+
+            if (File.Exists(Path.Combine(rootPath, "textures", FaceGenSubPaths.Item2)) == false) { return false; }
+            // check for dds
+            bool bDdsExists = false;
+            if (File.Exists(Path.Combine(rootPath, "textures", FaceGenSubPaths.Item2)))
+            {
+                bDdsExists = true;
+            }
+            else
+            {
+                foreach (string path in extraDataPaths)
+                {
+                    if (File.Exists(Path.Combine(rootPath, "textures", FaceGenSubPaths.Item2)))
+                    {
+                        bDdsExists = true;
+                        break;
+                    }
+                }
+            }
+
+            if (bDdsExists == false)
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -332,7 +424,7 @@ namespace NPCAppearancePluginFilterer
             return PluginDirectoryDict;
         }
 
-        public static void copyAssets(Npc npc, NAPFsettings settings, string currentModDirectory, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void copyAssets(Npc npc, NAPFsettings settings, string currentModDirectory, HashSet<string> ExtraDataDirectories, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             HashSet<string> meshes = new HashSet<string>();
             HashSet<string> textures = new HashSet<string>();
@@ -341,8 +433,6 @@ namespace NPCAppearancePluginFilterer
             var FaceGenSubPaths = getFaceGenSubPathStrings(npc.FormKey);
             meshes.Add(FaceGenSubPaths.Item1);
             textures.Add(FaceGenSubPaths.Item2);
-            //meshes.Add("actors\\character\\facegendata\\facegeom\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".nif");
-            //textures.Add("actors\\character\\facegendata\\facetint\\" + npc.FormKey.ModKey.ToString() + "\\00" + npc.FormKey.IDString() + ".dds");
 
             if (settings.CopyExtraAssets)
             {
@@ -371,8 +461,8 @@ namespace NPCAppearancePluginFilterer
             }
 
             // copy files
-            copyAssetFiles(settings, currentModDirectory, meshes, "Meshes");
-            copyAssetFiles(settings, currentModDirectory, textures, "Textures");
+            copyAssetFiles(settings, currentModDirectory, meshes, ExtraDataDirectories, "Meshes");
+            copyAssetFiles(settings, currentModDirectory, textures, ExtraDataDirectories, "Textures");
         }
 
         public static (string, string) getFaceGenSubPathStrings(FormKey npcFormKey)
@@ -382,13 +472,12 @@ namespace NPCAppearancePluginFilterer
             return (meshPath, texPath);
         }
 
-        public static void copyAssetFiles(NAPFsettings settings, string dataPath, HashSet<string> assetPathList, string type)
+        public static void copyAssetFiles(NAPFsettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type)
         {
-            
-            string prepend = Path.Combine(settings.AssetOutputDirectory, type);
-            if (Directory.Exists(prepend) == false)
+            string outputPrepend = Path.Combine(settings.AssetOutputDirectory, type);
+            if (Directory.Exists(outputPrepend) == false)
             {
-                Directory.CreateDirectory(prepend);
+                Directory.CreateDirectory(outputPrepend);
             }
 
             foreach (string s in assetPathList)
@@ -396,16 +485,58 @@ namespace NPCAppearancePluginFilterer
                 if (!isIgnored(s, settings.pathsToIgnore))
                 {
                     string currentPath = Path.Join(dataPath, type, s);
-                    if (File.Exists(currentPath) == false)
+                    
+                    bool bFileExists = false;
+                    // check if file exists at primary path
+                    if (File.Exists(currentPath))
+                    {
+                        bFileExists = true;
+                    }
+                    else
+                    {
+                        // check if file exists in the specified extra data paths
+                        foreach (string extraDir in ExtraDataDirectories)
+                        {
+                            currentPath = Path.Join(extraDir, type, s);
+                            if (File.Exists(currentPath))
+                            {
+                                bFileExists = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (bFileExists == false)
                     {
                         if (!(settings.SuppressKnownMissingFileWarnings && settings.warningsToSuppress.Contains(s))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
                         {
-                            Console.WriteLine("Warning: File " + currentPath + " was not found.");
+                            if (settings.AbortIfMissingExtraAssets)
+                            {
+                                if (ExtraDataDirectories.Count == 0)
+                                {
+                                    throw new Exception("Extra Asset " + currentPath + " was not found.");
+                                }
+                                else
+                                {
+                                    throw new Exception("Extra Asset " + s + " was not found in " + dataPath + " or any Extra Data Directories.");
+                                }
+                            }
+                            else
+                            {
+                                if (ExtraDataDirectories.Count == 0)
+                                {
+                                    Console.WriteLine("Warning: File " + currentPath + " was not found.");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Extra Asset " + s + " was not found in " + dataPath + " or any Extra Data Directories.");
+                                }
+                            }
                         }
                     }
                     else
                     {
-                        string destPath = Path.Join(prepend, s);
+                        string destPath = Path.Join(outputPrepend, s);
 
                         FileInfo fileInfo = new FileInfo(destPath);
                         if (fileInfo != null && fileInfo.Directory != null && !fileInfo.Directory.Exists)

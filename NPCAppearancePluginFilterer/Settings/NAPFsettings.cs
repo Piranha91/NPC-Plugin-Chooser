@@ -37,7 +37,15 @@ namespace NPCAppearancePluginFilterer.Settings
 
         [SynthesisOrder]
         [SynthesisTooltip("If checked, all detected resources required by each NPC will be copied (provided they reside in the same mod folder the the plugin. If unchecked, only facegen will be copied.")]
-        public bool CopyExtraAssets { get; set; } = false; 
+        public bool CopyExtraAssets { get; set; } = false;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("If checked, the patcher will error out if an expected FaceGen file is not found in a mod's directory (recommended to leave on).")]
+        public bool AbortIfMissingFaceGen { get; set; } = true;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("If checked, the patcher will error out if an expected Extra Asset (non-FaceGen textures and meshes) is not found in a mod's directory (recommended to leave off unless you're sure your mods have absolutely no external dependencies).")]
+        public bool AbortIfMissingExtraAssets { get; set; } = false;
 
         [SynthesisOrder]
         [SynthesisTooltip("Some plugins reference files that don't exist in their own download - for example the Bijin series references a bunch of .tri files that don't ship with the mod. While I can't account for every mod that exists, this settings suppresses \"file could not be found\" warnings from mods with known missing files so that any warnings you do see are more likely to be real.")]
@@ -174,6 +182,10 @@ namespace NPCAppearancePluginFilterer.Settings
 
         [SynthesisOrder]
         [SynthesisTooltip("If checked, all NPCs in the chosen plugin EXCEPT the ones specified above will be forwarded.")]
-        public bool InvertSelection { get; set; }
+        public bool InvertSelection { get; set; } = false;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("If FaceGen or extra assets are not found in the plugin's MO2 directory, NAPF will search through these additional directories to try to find them.")]
+        public HashSet<string> ExtraDataDirectories { get; set; } = new HashSet<string>();
     }
 }
