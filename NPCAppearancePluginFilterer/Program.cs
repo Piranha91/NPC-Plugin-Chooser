@@ -121,22 +121,16 @@ namespace NPCAppearancePluginFilterer
                     }
                     string currentDataDir = PluginDirectoryDict[PPS.Plugin];
 
-                    foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
+                    state.LoadOrder.TryGetValue(PPS.Plugin, out var currentModContext);
+                    if (currentModContext != null && currentModContext.Mod != null)
                     {
-                        var npcWinner = npcCO.Record;
-                        string NPCdispStr = npcWinner.Name + " | " + npcWinner.EditorID + " | " + npcWinner.FormKey.ToString();
-                        foreach (var context in state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey))
+                        foreach (var npc in currentModContext.Mod.Npcs)
                         {
-                            if (context.ModKey != PPS.Plugin)
-                            {
-                                continue;
-                            }
-
-                            var npc = context.Record;
                             if ((PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
                             {
+                                string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
-                                if (faceGenExists(npcCO, currentDataDir, PPS.ExtraDataDirectories, state) == false)
+                                if (faceGenExists(npc.FormKey, currentDataDir, PPS.ExtraDataDirectories, state) == false)
                                 {
                                     if (settings.AbortIfMissingFaceGen)
                                     {
@@ -150,7 +144,6 @@ namespace NPCAppearancePluginFilterer
 
                                 var NPCoverride = state.PatchMod.Npcs.GetOrAddAsOverride(npc);
                                 copyAssets(NPCoverride, settings, currentDataDir, PPS.ExtraDataDirectories, state);
-                                break;
                             }
                         }
                     }
@@ -195,7 +188,7 @@ namespace NPCAppearancePluginFilterer
         public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, NAPFsettings settings, NAPFsettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             // skip NPC if it has no modded facegen
-            if (faceGenExists(npcCO, state.DataFolderPath, new HashSet<string>(), state) == false)
+            if (faceGenExists(npcCO.Record.FormKey, state.DataFolderPath, new HashSet<string>(), state) == false)
             {
                 return;
             }
@@ -239,9 +232,9 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        public static bool faceGenExists(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, string rootPath, HashSet<string> extraDataPaths, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static bool faceGenExists(FormKey NPCFormKey, string rootPath, HashSet<string> extraDataPaths, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
+            var FaceGenSubPaths = getFaceGenSubPathStrings(NPCFormKey);
 
             // check for nif
             bool bNifExists = false;
