@@ -36,6 +36,14 @@ namespace NPCAppearancePluginFilterer.Settings
         public bool ClearAssetOutputDirectory { get; set; } = false;
 
         [SynthesisOrder]
+        [SynthesisTooltip("If checked, the non-appearance-related data from the winning override in your load order will be merged into the output plugin.")]
+        public bool ForwardConflictWinnerData { get; set; } = true;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("If checked, outfits are considered as \"non-appearance-related data\" in the above setting.")]
+        public bool ForwardConflictWinnerOutifts { get; set; } = false;
+
+        [SynthesisOrder]
         [SynthesisTooltip("If checked, all detected resources required by each NPC will be copied (provided they reside in the same mod folder the the plugin. If unchecked, only facegen will be copied.")]
         public bool CopyExtraAssets { get; set; } = false;
 
@@ -63,100 +71,7 @@ namespace NPCAppearancePluginFilterer.Settings
         };
 
         [SynthesisIgnoreSetting]
-        public HashSet<string> pathsToIgnore = new HashSet<string>()
-        {
-            // Meshes folder
-            "Actors\\Character\\Character Assets\\MaleBody_0.NIF",
-            "Actors\\Character\\Character Assets\\FemaleBody_0.NIF",
-            "Actors\\Character\\Character Assets\\MaleHands_0.nif",
-            "Actors\\Character\\Character Assets\\FemaleHands_0.nif",
-            "Actors\\Character\\Character Assets\\MaleFeet_0.nif",
-            "Actors\\Character\\Character Assets\\FemaleFeet_0.nif",
-            "Actors\\Character\\Character Assets\\MaleBody_1.NIF",
-            "Actors\\Character\\Character Assets\\FemaleBody_1.NIF",
-            "Actors\\Character\\Character Assets\\MaleHands_1.nif",
-            "Actors\\Character\\Character Assets\\FemaleHands_1.nif",
-            "Actors\\Character\\Character Assets\\MaleFeet_1.nif",
-            "Actors\\Character\\Character Assets\\FemaleFeet_1.nif",
-
-            //tri
-            "Actors\\Character\\Character Assets\\FemaleHeadRaces.tri",
-            "Actors\\Character\\Character Assets\\FemaleHead.tri",
-            "Actors\\Character\\Character Assets\\FemaleHeadCharGen.tri",
-
-            //misc
-            "Actors\\Character\\Character Assets\\FaceParts\\FemaleBrows.nif",
-
-            //Textures Folder
-
-
-            //human body
-            "Actors\\Character\\Male\\MaleBody_1.dds",
-            "Actors\\Character\\Male\\MaleBody_1_msn.dds",
-            "Actors\\Character\\Male\\MaleBody_1_sk.dds",
-            "Actors\\Character\\Male\\MaleBody_1_S.dds",
-            "Actors\\Character\\Female\\FemaleBody_1.dds",
-            "Actors\\Character\\Female\\FemMaleBody_1_msn.dds",
-            "Actors\\Character\\Female\\FemaleBody_1_sk.dds",
-            "Actors\\Character\\Female\\FemaleBody_1_S.dds",
-
-            "Actors\\Character\\Male\\MaleBodyAfflicted.dds",
-            "Actors\\Character\\Male\\MaleBodySnowElf.dds",
-            //human hands
-            
-            "Actors\\Character\\Male\\MaleHands_1.dds",
-            "Actors\\Character\\Male\\MaleHands_1_msn.dds",
-            "Actors\\Character\\Male\\MaleHands_1_sk.dds",
-            "Actors\\Character\\Male\\MaleHands_1_S.dds",
-            "Actors\\Character\\Female\\FemaleHands_1.dds",
-            "Actors\\Character\\Female\\FemMaleHands_1_msn.dds",
-            "Actors\\Character\\Female\\FemaleHands_1_sk.dds",
-            "Actors\\Character\\Female\\FemaleHands_1_S.dds",
-
-            "Actors\\Character\\Male\\MaleHandsAfflicted.dds",
-            "Actors\\Character\\Male\\MaleHandsSnowElf.dds",
-            
-            //human head
-            "Actors\\Character\\Male\\blankdetailmap.dds",
-
-            "Actors\\Character\\Male\\MaleHead.dds",
-            "Actors\\Character\\Male\\MaleHead_msn.dds",
-            "Actors\\Character\\Male\\MaleHead_sk.dds",
-            "Actors\\Character\\Male\\MaleHead_S.dds",
-
-            "Actors\\Character\\Male\\MaleHeadAfflicted.dds",
-            "Actors\\Character\\Male\\MaleHeadSnowElf.dds",
-            "Actors\\Character\\Male\\MaleHeadVampire.dds",
-            "Actors\\Character\\Male\\MaleHeadVampire_msn.dds",
-
-            "Actors\\Character\\Male\\MaleHeadDetail_Age40.dds",
-            "Actors\\Character\\Male\\MaleHeadDetail_Age40Rough.dds",
-            "Actors\\Character\\Male\\MaleHeadDetail_Age50.dds",
-            "Actors\\Character\\Male\\MaleHeadDetail_Rough01.dds",
-            "Actors\\Character\\Male\\MaleHeadDetail_Rough02.dds",
-
-            "Actors\\Character\\Female\\FemaleHead.dds",
-            "Actors\\Character\\Female\\FemaleHead_msn.dds",
-            "Actors\\Character\\Female\\FemaleHead_sk.dds",
-            "Actors\\Character\\Female\\FemaleHead_S.dds",
-
-            "Actors\\Character\\Female\\FemaleHeadAfflicted.dds",
-            "Actors\\Character\\Female\\FemaleHeadVampire.dds",
-            "Actors\\Character\\Female\\FemaleHeadVampire_msn.dds",
-
-            "Actors\\Character\\Female\\FemaleHeadDetail_Age40.dds",
-            "Actors\\Character\\Female\\FemaleHeadDetail_Age40Rough.dds",
-            "Actors\\Character\\Female\\FemaleHeadDetail_Age50.dds",
-            "Actors\\Character\\Female\\FemaleHeadDetail_Rough.dds",
-            "Actors\\Character\\Female\\FemaleHeadDetail_Frekles.dds",
-
-            "Actors\\Character\\BretonFemale\\FemaleHead_msn.dds"
-
-            
-
-            //argonian body
-
-        };
+        public HashSet<string> pathsToIgnore { get; set; } = new HashSet<string>();
 
         [SynthesisIgnoreSetting]
         public HashSet<string> warningsToSuppress { get; set; } = new HashSet<string>();
