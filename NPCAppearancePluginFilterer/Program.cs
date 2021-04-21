@@ -130,6 +130,11 @@ namespace NPCAppearancePluginFilterer
                             {
                                 string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
+
+                                // try to unpack BSA if it exists
+                                HashSet<string> BSAassetPaths = unpackBSAFaceGen(PPS.Plugin, currentDataDir);
+                                    //
+
                                 if (faceGenExists(npc.FormKey, currentDataDir, PPS.ExtraDataDirectories, state) == false)
                                 {
                                     if (settings.AbortIfMissingFaceGen)
@@ -153,6 +158,30 @@ namespace NPCAppearancePluginFilterer
                     state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
                 }
             }
+        }
+
+        public static HashSet<string> unpackBSAFaceGen(ModKey currentPlugin, string currentDataDir)
+        {
+            HashSet<string> extractedFaceGenPaths = new HashSet<string>();
+            var BSAs = Directory.GetFiles(currentDataDir, "*.bsa");
+            foreach (var bsaFile in Archive.GetApplicableArchivePaths(GameRelease.SkyrimSE, currentDataDir, currentPlugin))
+            {
+                try
+                {
+                    var bsaReader = Archive.CreateReader(GameRelease.SkyrimSE, bsaFile);
+
+                    var x = bsaReader.Files;
+                    var y = bsaReader.Files.ToList();
+                    var z = "";
+
+                }
+                catch
+                {
+                    Console.WriteLine("Could not open archive {0}", bsaFile);
+                }
+            }
+
+            return extractedFaceGenPaths;
         }
 
         public static void clearOuptutDir(NAPFsettings settings)
