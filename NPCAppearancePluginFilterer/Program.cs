@@ -149,8 +149,11 @@ namespace NPCAppearancePluginFilterer
                     }
 
                     //remap dependencies
-                    Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
-                    state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
+                    if (settings.BaseGamePlugins.Contains(PPS.Plugin) == false)
+                    {
+                        Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
+                        state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
+                    }
                 }
             }
         }
@@ -517,6 +520,12 @@ namespace NPCAppearancePluginFilterer
                         switch (settings.Mode)
                         {
                             case Mode.Deep:
+                                if (settings.BaseGamePlugins.Contains(PPS.Plugin))
+                                {
+                                    PluginDirectoryDict.Add(PPS.Plugin, state.DataFolderPath);
+                                    break;
+                                }
+
                                 bool dirFound = false;
                                 foreach (var dirName in Directory.GetDirectories(settings.MO2DataPath))
                                 {
