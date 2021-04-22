@@ -453,6 +453,28 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
+        public static void getPathstoIgnore(NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            string settingsPath = Path.Combine(state.ExtraSettingsDataPath, "Paths To Ignore.json");
+            if (!File.Exists(settingsPath))
+            {
+                throw new Exception("Could not find the list of asset paths to ignore (expected at: " + settingsPath + ").");
+            }
+
+            try
+            {
+                var tempJArray = JArray.Parse(File.ReadAllText(settingsPath));
+                foreach (var s in tempJArray)
+                {
+                    settings.pathsToIgnore.Add(s.ToString().Replace(@"\\", @"\"));
+                }
+            }
+            catch
+            {
+                throw new Exception("Could not parse the list of asset paths to ignore (expected at: " + settingsPath + ").");
+            }
+        }
+
         public static Dictionary<ModKey, string> initPluginDirectoryDict(NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             Dictionary<ModKey, string> PluginDirectoryDict = new Dictionary<ModKey, string>();
