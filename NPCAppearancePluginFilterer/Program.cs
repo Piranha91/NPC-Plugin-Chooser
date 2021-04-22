@@ -224,7 +224,7 @@ namespace NPCAppearancePluginFilterer
         public static bool BSAhasFile(string subpath, IArchiveReader bsaReader, out IArchiveFile? file)
         {
             file = null;
-            var files = bsaReader.Files.Where(candidate => candidate.Path.ToLower() == subpath.ToLower());
+            var files = bsaReader.Files.Where(candidate => candidate.Path.Equals(subpath, StringComparison.OrdinalIgnoreCase));
             if (files.Any())
             {
                 file = files.First();
@@ -799,7 +799,7 @@ namespace NPCAppearancePluginFilterer
 
                     if (bFileExists == false)
                     {
-                        if (!(settings.SuppressKnownMissingFileWarnings && settings.warningsToSuppress.Contains(s))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
+                        if (!(settings.SuppressKnownMissingFileWarnings && settings.warningsToSuppress.Any(s => s.Equals(s, StringComparison.OrdinalIgnoreCase)))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
                         {
                             if (settings.AbortIfMissingExtraAssets)
                             {
@@ -816,11 +816,11 @@ namespace NPCAppearancePluginFilterer
                             {
                                 if (ExtraDataDirectories.Count == 0)
                                 {
-                                    Console.WriteLine("Warning: File " + currentPath + " was not found.");
+                                    Console.WriteLine("Warning: Extra Asset " + currentPath + " was not found.");
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Extra Asset " + s + " was not found in " + dataPath + " or any Extra Data Directories.");
+                                    Console.WriteLine("Warning: Extra Asset " + s + " was not found in " + dataPath + " or any Extra Data Directories.");
                                 }
                             }
                         }
