@@ -130,7 +130,7 @@ namespace NPCAppearancePluginFilterer
                             {
                                 string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
-                                if (faceGenExists(npc.FormKey, currentDataDir, PPS.ExtraDataDirectories, state) == false)
+                                if (faceGenExists(npc.FormKey, currentModContext.ModKey, currentDataDir, PPS.ExtraDataDirectories, settings, state, out var inBSA) == false)
                                 {
                                     if (settings.AbortIfMissingFaceGen)
                                     {
@@ -143,6 +143,14 @@ namespace NPCAppearancePluginFilterer
                                 }
 
                                 var NPCoverride = addNPCtoPatch(npc, settings, state);
+                                var BSAcleanupList = new HashSet<string>(); // contains paths extracted by BSA handling function which need to be deleted after copyAssets() is called
+
+                                if (settings.HandleBSAFiles)
+                                {
+                                    var BSAreaders = openBSAArchiveReaders(currentDataDir, currentModContext.ModKey);
+
+                                }
+
                                 copyAssets(NPCoverride, settings, currentDataDir, PPS.ExtraDataDirectories, state);
                             }
                         }
@@ -152,6 +160,37 @@ namespace NPCAppearancePluginFilterer
                     Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
                     state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
                 }
+            }
+        }
+
+        public static HashSet<IArchiveReader> openBSAArchiveReaders(string currentDataDir, ModKey currentPlugin)
+        {
+            var readers = new HashSet<IArchiveReader>();
+
+            foreach (var bsaFile in Archive.GetApplicableArchivePaths(GameRelease.SkyrimSE, currentDataDir, currentPlugin))
+            {
+                try
+                {
+                    var bsaReader = Archive.CreateReader(GameRelease.SkyrimSE, bsaFile);
+                    readers.Add(bsaReader);
+                }
+                catch
+                {
+                    throw new Exception("Could not open archive " + bsaFile);
+                }
+            }
+            return readers;
+        }
+
+        public static bool BSAhasFile(string subpath, IArchiveReader bsaReader)
+        {
+            if (bsaReader.Files.Where(candidate => candidate.Path == subpath).Any())
+            {
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 
@@ -293,7 +332,7 @@ namespace NPCAppearancePluginFilterer
         public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, NAPFsettings settings, NAPFsettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             // skip NPC if it has no modded facegen
-            if (faceGenExists(npcCO.Record.FormKey, state.DataFolderPath, new HashSet<string>(), state) == false)
+            if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), settings, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
             {
                 return;
             }
@@ -337,24 +376,50 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        public static bool faceGenExists(FormKey NPCFormKey, string rootPath, HashSet<string> extraDataPaths, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static bool faceGenExists(FormKey NPCFormKey, ModKey currentModKey, string rootPath, HashSet<string> extraDataPaths, NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out ((bool,int), (bool,int)) inBSA)
         {
             var FaceGenSubPaths = getFaceGenSubPathStrings(NPCFormKey);
 
+            var BSAreaders = new HashSet<IArchiveReader>();
+            if (settings.HandleBSAFiles)
+            {
+                BSAreaders = openBSAArchiveReaders(rootPath, currentModKey);
+            }
+            inBSA = ((false, 0), (false, 0));
+
             // check for nif
             bool bNifExists = false;
-            if (File.Exists(Path.Combine(rootPath, "meshes", FaceGenSubPaths.Item1)))
+            string FaceGenNifSubPath = Path.Combine(rootPath, "meshes", FaceGenSubPaths.Item1);
+            if (File.Exists(FaceGenNifSubPath))
             {
                 bNifExists = true;
             }
             else
             {
-                foreach (string path in extraDataPaths)
+                if (settings.HandleBSAFiles && BSAreaders.Any())
                 {
-                    if (File.Exists(Path.Combine(rootPath, "meshes", FaceGenSubPaths.Item1)))
+                    int i = 0;
+                    foreach (var reader in BSAreaders)
                     {
-                        bNifExists = true;
-                        break;
+                        i++;
+                        if (BSAhasFile(FaceGenSubPaths.Item1, reader))
+                        {
+                            bNifExists = true;
+                            inBSA.Item1 = (true, i);
+                            break;
+                        }
+                    }
+                }
+
+                if (bNifExists == false)
+                {
+                    foreach (string path in extraDataPaths)
+                    {
+                        if (File.Exists(FaceGenNifSubPath))
+                        {
+                            bNifExists = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -364,21 +429,39 @@ namespace NPCAppearancePluginFilterer
                 return false;
             }
 
-            if (File.Exists(Path.Combine(rootPath, "textures", FaceGenSubPaths.Item2)) == false) { return false; }
-            // check for dds
+            // check for Dds
             bool bDdsExists = false;
-            if (File.Exists(Path.Combine(rootPath, "textures", FaceGenSubPaths.Item2)))
+            string FaceGenDdsSubPath = Path.Combine(rootPath, "textures", FaceGenSubPaths.Item2);
+            if (File.Exists(FaceGenDdsSubPath))
             {
                 bDdsExists = true;
             }
             else
             {
-                foreach (string path in extraDataPaths)
+                if (settings.HandleBSAFiles && BSAreaders.Any())
                 {
-                    if (File.Exists(Path.Combine(rootPath, "textures", FaceGenSubPaths.Item2)))
+                    int i = 0;
+                    foreach (var reader in BSAreaders)
                     {
-                        bDdsExists = true;
-                        break;
+                        i++;
+                        if (BSAhasFile(FaceGenSubPaths.Item1, reader))
+                        {
+                            bDdsExists = true;
+                            inBSA.Item2 = (true, i);
+                            break;
+                        }
+                    }
+                }
+
+                if (bDdsExists == false)
+                {
+                    foreach (string path in extraDataPaths)
+                    {
+                        if (File.Exists(FaceGenDdsSubPath))
+                        {
+                            bDdsExists = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -387,6 +470,7 @@ namespace NPCAppearancePluginFilterer
             {
                 return false;
             }
+
 
             return true;
         }
