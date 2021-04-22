@@ -181,8 +181,20 @@ namespace NPCAppearancePluginFilterer
         {
             try
             {
-                var fileStream = File.Create(destPath);
-                file.CopyDataTo(fileStream);
+                string? dirPath = Path.GetDirectoryName(destPath);
+                if (dirPath != null)
+                {
+                    if (Directory.Exists(dirPath) == false)
+                    {
+                        Directory.CreateDirectory(dirPath);
+                    }
+                    var fileStream = File.Create(destPath);
+                    file.CopyDataTo(fileStream);
+                }
+                else
+                {
+                    throw new Exception("Could not create the output directory at " + dirPath);
+                }
             }
             catch
             {
@@ -212,7 +224,7 @@ namespace NPCAppearancePluginFilterer
         public static bool BSAhasFile(string subpath, IArchiveReader bsaReader, out IArchiveFile? file)
         {
             file = null;
-            var files = bsaReader.Files.Where(candidate => candidate.Path == subpath);
+            var files = bsaReader.Files.Where(candidate => candidate.Path.ToLower() == subpath.ToLower());
             if (files.Any())
             {
                 file = files.First();
@@ -430,7 +442,7 @@ namespace NPCAppearancePluginFilterer
                 {
                     foreach (var reader in BSAreaders)
                     {
-                        if (BSAhasFile(FaceGenSubPaths.Item1, reader, out var nifFile))
+                        if (BSAhasFile(Path.Combine("meshes", FaceGenSubPaths.Item1), reader, out var nifFile))
                         {
                             bNifExists = true;
                             BSAFiles.Item1 = nifFile;
@@ -470,7 +482,7 @@ namespace NPCAppearancePluginFilterer
                 {
                     foreach (var reader in BSAreaders)
                     {
-                        if (BSAhasFile(FaceGenSubPaths.Item1, reader, out var DdsFile))
+                        if (BSAhasFile(Path.Combine("textures", FaceGenSubPaths.Item2), reader, out var DdsFile))
                         {
                             bDdsExists = true;
                             BSAFiles.Item2 = DdsFile;

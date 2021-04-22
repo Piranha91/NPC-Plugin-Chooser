@@ -45,7 +45,7 @@ namespace NPCAppearancePluginFilterer.Settings
 
         [SynthesisOrder]
         [SynthesisTooltip("If checked, the patcher will look inside BSA files for FaceGen.")]
-        public bool HandleBSAFiles { get; set; } = false;
+        public bool HandleBSAFiles { get; set; } = true;
 
         [SynthesisOrder]
         [SynthesisTooltip("If checked, all detected resources required by each NPC will be copied (provided they reside in the same mod folder the the plugin. If unchecked, only facegen will be copied.")]
