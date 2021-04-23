@@ -166,75 +166,18 @@ namespace NPCAppearancePluginFilterer
             if (nif != null)
             {
                 string destNifPath = Path.Combine(outputPath, subPaths.Item1);
-                extractFileFromBSA(nif, destNifPath);
+                BSAHandler.extractFileFromBSA(nif, destNifPath);
                 outputFiles.Add(destNifPath);
             }
             if (dds != null)
             {
                 string destDdsPath = Path.Combine(outputPath, subPaths.Item2);
-                extractFileFromBSA(dds, destDdsPath);
+                BSAHandler.extractFileFromBSA(dds, destDdsPath);
                 outputFiles.Add(destDdsPath);
             }
         }
 
-        public static void extractFileFromBSA(IArchiveFile file, string destPath)
-        {
-            try
-            {
-                string? dirPath = Path.GetDirectoryName(destPath);
-                if (dirPath != null)
-                {
-                    if (Directory.Exists(dirPath) == false)
-                    {
-                        Directory.CreateDirectory(dirPath);
-                    }
-                    var fileStream = File.Create(destPath);
-                    file.CopyDataTo(fileStream);
-                }
-                else
-                {
-                    throw new Exception("Could not create the output directory at " + dirPath);
-                }
-            }
-            catch
-            {
-                throw new Exception("Could not extract file from BSA: " + file.Path + " to directory " + destPath);
-            }
-        }
-
-        public static HashSet<IArchiveReader> openBSAArchiveReaders(string currentDataDir, ModKey currentPlugin)
-        {
-            var readers = new HashSet<IArchiveReader>();
-
-            foreach (var bsaFile in Archive.GetApplicableArchivePaths(GameRelease.SkyrimSE, currentDataDir, currentPlugin))
-            {
-                try
-                {
-                    var bsaReader = Archive.CreateReader(GameRelease.SkyrimSE, bsaFile);
-                    readers.Add(bsaReader);
-                }
-                catch
-                {
-                    throw new Exception("Could not open archive " + bsaFile);
-                }
-            }
-            return readers;
-        }
-
-        public static bool BSAhasFile(string subpath, IArchiveReader bsaReader, out IArchiveFile? file)
-        {
-            file = null;
-            var files = bsaReader.Files.Where(candidate => candidate.Path.Equals(subpath, StringComparison.OrdinalIgnoreCase));
-            if (files.Any())
-            {
-                file = files.First();
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
+        
 
         public static Npc addNPCtoPatch(INpcGetter userSelectedNPC, NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
@@ -425,7 +368,7 @@ namespace NPCAppearancePluginFilterer
             var BSAreaders = new HashSet<IArchiveReader>();
             if (settings.HandleBSAFiles)
             {
-                BSAreaders = openBSAArchiveReaders(rootPath, currentModKey);
+                BSAreaders = BSAHandler.openBSAArchiveReaders(rootPath, currentModKey);
             }
             BSAFiles = (null, null);
 
@@ -442,7 +385,7 @@ namespace NPCAppearancePluginFilterer
                 {
                     foreach (var reader in BSAreaders)
                     {
-                        if (BSAhasFile(Path.Combine("meshes", FaceGenSubPaths.Item1), reader, out var nifFile))
+                        if (BSAHandler.TryGetFile(Path.Combine("meshes", FaceGenSubPaths.Item1), reader, out var nifFile))
                         {
                             bNifExists = true;
                             BSAFiles.Item1 = nifFile;
@@ -482,7 +425,7 @@ namespace NPCAppearancePluginFilterer
                 {
                     foreach (var reader in BSAreaders)
                     {
-                        if (BSAhasFile(Path.Combine("textures", FaceGenSubPaths.Item2), reader, out var DdsFile))
+                        if (BSAHandler.TryGetFile(Path.Combine("textures", FaceGenSubPaths.Item2), reader, out var DdsFile))
                         {
                             bDdsExists = true;
                             BSAFiles.Item2 = DdsFile;
@@ -708,17 +651,17 @@ namespace NPCAppearancePluginFilterer
                 HashSet<string> extractedMeshFiles = new HashSet<string>();
                 HashSet<string> extractedTexFiles = new HashSet<string>();
 
-                var BSAreaders = openBSAArchiveReaders(currentModDirectory, NPCModKey);
+                var BSAreaders = BSAHandler.openBSAArchiveReaders(currentModDirectory, NPCModKey);
                 foreach (string subPath in meshes)
                 {
                     string meshPath = Path.Combine("meshes", subPath);
                     foreach (var reader in BSAreaders)
                     {
-                        if (BSAhasFile(meshPath, reader, out var file) && file != null)
+                        if (BSAHandler.TryGetFile(meshPath, reader, out var file) && file != null)
                         {
                             extractedMeshFiles.Add(subPath);
                             string destFile = Path.Combine(settings.AssetOutputDirectory, meshPath);
-                            extractFileFromBSA(file, destFile);
+                            BSAHandler.extractFileFromBSA(file, destFile);
                             break;
                         }
                     }
@@ -729,11 +672,11 @@ namespace NPCAppearancePluginFilterer
                     string texPath = Path.Combine("textures", subPath);
                     foreach (var reader in BSAreaders)
                     {
-                        if (BSAhasFile(texPath, reader, out var file) && file != null)
+                        if (BSAHandler.TryGetFile(texPath, reader, out var file) && file != null)
                         {
                             extractedTexFiles.Add(subPath);
                             string destFile = Path.Combine(settings.AssetOutputDirectory, texPath);
-                            extractFileFromBSA(file, destFile);
+                            BSAHandler.extractFileFromBSA(file, destFile);
                             break;
                         }
                     }
