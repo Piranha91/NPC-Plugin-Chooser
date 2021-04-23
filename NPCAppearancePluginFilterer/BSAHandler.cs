@@ -54,8 +54,6 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        
-
         public static bool TryGetFile(string subpath, IArchiveReader bsaReader, out IArchiveFile? file)
         {
             file = null;
@@ -69,6 +67,19 @@ namespace NPCAppearancePluginFilterer
             {
                 return false;
             }
+        }
+
+        public static bool HaveFile(string subpath, HashSet<IArchiveReader> bsaReaders)
+        {
+            foreach (var reader in bsaReaders)
+            {
+                if (TryGetFile(subpath, reader, out var Unused))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

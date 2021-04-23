@@ -74,9 +74,19 @@ namespace NPCAppearancePluginFilterer
                 outputSettings.Mode = Mode.Deep;
                 outputSettings.SuppressKnownMissingFileWarnings = settings.SuppressKnownMissingFileWarnings;
 
+                int counter = 0;
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
+                    if (npcCO.Record.FaceMorph == null)
+                    {
+                        continue; // skip creatures
+                    }
                     generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state);
+                    counter++;
+                    if (counter % 100 == 0)
+                    {
+                        Console.WriteLine("Processed {0} NPCS", counter++);
+                    }
                 }
 
                 // write output settings here
@@ -303,7 +313,7 @@ namespace NPCAppearancePluginFilterer
 
             foreach (var context in state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey))
             {
-                if (settings.PluginsExcludedFromMerge.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey) // if the current plugin is from the excluded list, or if it is the base plugin, skip
+                if (settings.BaseGamePlugins.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey) // if the current plugin is from the excluded list, or if it is the base plugin, skip
                 {
                     continue;
                 }
@@ -313,7 +323,7 @@ namespace NPCAppearancePluginFilterer
                 string currentDataDir = PluginDirectoryDict[context.ModKey];
 
                 // check if NPC's facegen matches the winning facegen
-                if (checkFaceGenMatch(context, currentDataDir, state) == true)
+                if (checkFaceGenMatch(context, currentDataDir, settings, state) == true)
                 {
                     // get the relevant plugin settings object
                     var currentPPS = new PerPluginSettings();
@@ -435,13 +445,23 @@ namespace NPCAppearancePluginFilterer
             return true;
         }
 
-        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, string currentModDir, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, string currentModDir, NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
 
             string modMeshPath = Path.Combine(currentModDir, "meshes", FaceGenSubPaths.Item1);
 
-            if (File.Exists(modMeshPath) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            HashSet<IArchiveReader> readers = new HashSet<IArchiveReader>();
+            if (settings.HandleBSAFiles)
+            {
+                readers = BSAHandler.openBSAArchiveReaders(currentModDir, npcCO.ModKey);
+                if (readers.Any())
+                {
+                    Console.WriteLine("Found BSA-pacakged FaceGen for: {0} {1}", npcCO.Record.EditorID, npcCO.ModKey);
+                }
+            }
+
+            if (File.Exists(modMeshPath) == false && (settings.HandleBSAFiles && BSAHandler.HaveFile(modMeshPath, readers)) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
             {
                 return false;
             }
@@ -455,7 +475,7 @@ namespace NPCAppearancePluginFilterer
 
             string modTexPath = Path.Combine(currentModDir, "textures", FaceGenSubPaths.Item2); 
             
-            if (File.Exists(modTexPath) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            if (File.Exists(modTexPath) == false && (settings.HandleBSAFiles && BSAHandler.HaveFile(modTexPath, readers)) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
             {
                 return false;
             }
