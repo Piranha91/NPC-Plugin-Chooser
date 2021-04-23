@@ -85,7 +85,7 @@ namespace NPCAppearancePluginFilterer
                     counter++;
                     if (counter % 100 == 0)
                     {
-                        Console.WriteLine("Processed {0} NPCS", counter++);
+                        Console.WriteLine("Processed {0} humanoid NPCs", counter++);
                     }
                 }
 
@@ -140,7 +140,7 @@ namespace NPCAppearancePluginFilterer
                             {
                                 string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
-                                if (faceGenExists(npc.FormKey, currentModContext.ModKey, currentDataDir, PPS.ExtraDataDirectories, settings, state, out var BSAfiles) == false)
+                                if (faceGenExists(npc.FormKey, currentModContext.ModKey, currentDataDir, PPS.ExtraDataDirectories, settings.HandleBSAFiles_Patching, state, out var BSAfiles) == false)
                                 {
                                     if (settings.AbortIfMissingFaceGen)
                                     {
@@ -305,13 +305,21 @@ namespace NPCAppearancePluginFilterer
         }
         public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, NAPFsettings settings, NAPFsettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            // skip NPC if it has no modded facegen
-            if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), settings, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
+            var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey);
+            
+            // skip if there are no overrides. Do this first to avoid having to do expensive BSA-enabled FaceGen check for large BSAs w/ few overrides such as Faalskar and LotD
+            if (contexts.Count() == 1)
             {
                 return;
             }
 
-            foreach (var context in state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey))
+            // skip NPC if it has no modded facegen
+            if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), settings.HandleBSAFiles_SettingsGen, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
+            {
+                return;
+            }
+
+            foreach (var context in contexts)
             {
                 if (settings.BaseGamePlugins.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey) // if the current plugin is from the excluded list, or if it is the base plugin, skip
                 {
@@ -323,7 +331,7 @@ namespace NPCAppearancePluginFilterer
                 string currentDataDir = PluginDirectoryDict[context.ModKey];
 
                 // check if NPC's facegen matches the winning facegen
-                if (checkFaceGenMatch(context, currentDataDir, settings, state) == true)
+                if (checkFaceGenMatch(context, currentDataDir, settings.HandleBSAFiles_SettingsGen, state) == true)
                 {
                     // get the relevant plugin settings object
                     var currentPPS = new PerPluginSettings();
@@ -350,12 +358,12 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        public static bool faceGenExists(FormKey NPCFormKey, ModKey currentModKey, string rootPath, HashSet<string> extraDataPaths, NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out (IArchiveFile?, IArchiveFile?) BSAFiles)
+        public static bool faceGenExists(FormKey NPCFormKey, ModKey currentModKey, string rootPath, HashSet<string> extraDataPaths, bool handleBSAFiles, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out (IArchiveFile?, IArchiveFile?) BSAFiles)
         {
             var FaceGenSubPaths = getFaceGenSubPathStrings(NPCFormKey);
 
             var BSAreaders = new HashSet<IArchiveReader>();
-            if (settings.HandleBSAFiles)
+            if (handleBSAFiles)
             {
                 BSAreaders = BSAHandler.openBSAArchiveReaders(rootPath, currentModKey);
             }
@@ -370,7 +378,7 @@ namespace NPCAppearancePluginFilterer
             }
             else
             {
-                if (settings.HandleBSAFiles && BSAreaders.Any())
+                if (handleBSAFiles && BSAreaders.Any())
                 {
                     foreach (var reader in BSAreaders)
                     {
@@ -410,7 +418,7 @@ namespace NPCAppearancePluginFilterer
             }
             else
             {
-                if (settings.HandleBSAFiles && BSAreaders.Any())
+                if (handleBSAFiles && BSAreaders.Any())
                 {
                     foreach (var reader in BSAreaders)
                     {
@@ -445,23 +453,19 @@ namespace NPCAppearancePluginFilterer
             return true;
         }
 
-        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, string currentModDir, NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, string currentModDir, bool handleBSAFiles, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
 
             string modMeshPath = Path.Combine(currentModDir, "meshes", FaceGenSubPaths.Item1);
 
             HashSet<IArchiveReader> readers = new HashSet<IArchiveReader>();
-            if (settings.HandleBSAFiles)
+            if (handleBSAFiles)
             {
                 readers = BSAHandler.openBSAArchiveReaders(currentModDir, npcCO.ModKey);
-                if (readers.Any())
-                {
-                    Console.WriteLine("Found BSA-pacakged FaceGen for: {0} {1}", npcCO.Record.EditorID, npcCO.ModKey);
-                }
             }
 
-            if (File.Exists(modMeshPath) == false && (settings.HandleBSAFiles && BSAHandler.HaveFile(modMeshPath, readers)) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            if (File.Exists(modMeshPath) == false && (handleBSAFiles && BSAHandler.HaveFile(modMeshPath, readers)) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
             {
                 return false;
             }
@@ -475,7 +479,7 @@ namespace NPCAppearancePluginFilterer
 
             string modTexPath = Path.Combine(currentModDir, "textures", FaceGenSubPaths.Item2); 
             
-            if (File.Exists(modTexPath) == false && (settings.HandleBSAFiles && BSAHandler.HaveFile(modTexPath, readers)) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            if (File.Exists(modTexPath) == false && (handleBSAFiles && BSAHandler.HaveFile(modTexPath, readers)) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
             {
                 return false;
             }
@@ -645,7 +649,7 @@ namespace NPCAppearancePluginFilterer
             }
 
             //extract needed files from BSA
-            if (settings.HandleBSAFiles)
+            if (settings.HandleBSAFiles_Patching)
             {
                 HashSet<string> extractedMeshFiles = new HashSet<string>();
                 HashSet<string> extractedTexFiles = new HashSet<string>();

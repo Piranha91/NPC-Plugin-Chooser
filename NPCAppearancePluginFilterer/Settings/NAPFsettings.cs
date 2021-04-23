@@ -44,8 +44,14 @@ namespace NPCAppearancePluginFilterer.Settings
         public bool ForwardConflictWinnerOutifts { get; set; } = false;
 
         [SynthesisOrder]
-        [SynthesisTooltip("If checked, the patcher will look inside BSA files for FaceGen.")]
-        public bool HandleBSAFiles { get; set; } = true;
+        [SynthesisSettingName("Handle BSA files during patching.")]
+        [SynthesisTooltip("If checked, the patcher will look inside BSA files for FaceGen and Extra Assets to forward.")]
+        public bool HandleBSAFiles_Patching { get; set; } = true;
+
+        [SynthesisOrder]
+        [SynthesisSettingName("Handle BSA files during settings generation")]
+        [SynthesisTooltip("If checked, the patcher will look inside BSA files for FaceGen during settings generation. May ~double the time it takes to generate settings depending on your mod list.")]
+        public bool HandleBSAFiles_SettingsGen { get; set; } = true;
 
         [SynthesisOrder]
         [SynthesisTooltip("If checked, all detected resources required by each NPC will be copied (provided they reside in the same mod folder the the plugin. If unchecked, only facegen will be copied.")]
