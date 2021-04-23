@@ -143,41 +143,20 @@ namespace NPCAppearancePluginFilterer
                                 }
 
                                 var NPCoverride = addNPCtoPatch(npc, settings, state);
-                                var BSAcleanupList = new HashSet<string>(); // contains paths extracted by BSA handling function which need to be deleted after copyAssets() is called
-
                                 copyAssets(NPCoverride, currentModContext.ModKey, settings, currentDataDir, PPS.ExtraDataDirectories, state);
                             }
                         }
                     }
 
                     //remap dependencies
-                    Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
-                    state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
+                    if (settings.BaseGamePlugins.Contains(PPS.Plugin) == false)
+                    {
+                        Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
+                        state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
+                    }
                 }
             }
-        }
-        public static void extractFaceGenFromBSA((IArchiveFile?, IArchiveFile?) BSAfiles, FormKey NPCFormKey, string outputPath, HashSet<string> outputFiles)
-        {
-            var nif = BSAfiles.Item1;
-            var dds = BSAfiles.Item2;
-
-            var subPaths = getFaceGenSubPathStrings(NPCFormKey);
-
-            if (nif != null)
-            {
-                string destNifPath = Path.Combine(outputPath, subPaths.Item1);
-                BSAHandler.extractFileFromBSA(nif, destNifPath);
-                outputFiles.Add(destNifPath);
-            }
-            if (dds != null)
-            {
-                string destDdsPath = Path.Combine(outputPath, subPaths.Item2);
-                BSAHandler.extractFileFromBSA(dds, destDdsPath);
-                outputFiles.Add(destDdsPath);
-            }
-        }
-
-        
+        }      
 
         public static Npc addNPCtoPatch(INpcGetter userSelectedNPC, NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
@@ -696,7 +675,6 @@ namespace NPCAppearancePluginFilterer
             // copy loose files
             copyAssetFiles(settings, currentModDirectory, meshes, ExtraDataDirectories, "Meshes");
             copyAssetFiles(settings, currentModDirectory, textures, ExtraDataDirectories, "Textures");
-
         }
 
         public static (string, string) getFaceGenSubPathStrings(FormKey npcFormKey)

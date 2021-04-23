@@ -75,6 +75,16 @@ namespace NPCAppearancePluginFilterer.Settings
         };
 
         [SynthesisIgnoreSetting]
+        public HashSet<ModKey> BaseGamePlugins = new HashSet<ModKey>()
+        {
+            ModKey.FromNameAndExtension("Skyrim.esm"),
+            ModKey.FromNameAndExtension("Update.esm"),
+            ModKey.FromNameAndExtension("Dawnguard.esm"),
+            ModKey.FromNameAndExtension("HearthFires.esm"),
+            ModKey.FromNameAndExtension("Dragonborn.esm")
+        };
+
+        [SynthesisIgnoreSetting]
         public HashSet<string> pathsToIgnore { get; set; } = new HashSet<string>();
 
         [SynthesisIgnoreSetting]
