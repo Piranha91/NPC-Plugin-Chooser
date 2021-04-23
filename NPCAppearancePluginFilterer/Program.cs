@@ -551,13 +551,22 @@ namespace NPCAppearancePluginFilterer
                 return PluginDirectoryDict;
             }
 
+            if (settings.GameDirPath != "" && Directory.Exists(settings.GameDirPath) == false)
+            {
+                throw new Exception("Could not find the game directory at " + settings.GameDirPath);
+            }
+
             if (settings.Mode == Mode.SettingsGen)
             {
                 foreach (var mkPair in state.LoadOrder)
                 {
                     var mk = mkPair.Key;
 
-                    if (settings.PluginsExcludedFromMerge.Contains(mk)) { continue; } // ignore master files
+                    if (settings.BaseGamePlugins.Contains(mk)) 
+                    {
+                        PluginDirectoryDict.Add(mk, Path.Combine(settings.GameDirPath, "data"));
+                        continue; 
+                    }
 
                     bool dirFound = false;
                     foreach (var dirName in Directory.GetDirectories(settings.MO2DataPath))
@@ -578,6 +587,7 @@ namespace NPCAppearancePluginFilterer
             }
             else
             {
+                string baseDataFolder = Path.Combine(settings.GameDirPath, "data");
                 foreach (var PPS in settings.PluginsToForward)
                 {
                     if (PPS.Plugin != null)
@@ -585,6 +595,20 @@ namespace NPCAppearancePluginFilterer
                         switch (settings.Mode)
                         {
                             case Mode.Deep:
+                                if (settings.BaseGamePlugins.Contains(PPS.Plugin))
+                                {
+                                    if (settings.GameDirPath == "")
+                                    {
+                                        throw new Exception("Forwarding appearance from a base game plugin requires the Game Directory to be set");
+                                    }
+                                    if (Directory.Exists(baseDataFolder) == false)
+                                    {
+                                        throw new Exception("User requested a plugin to be forwarded from base game plugin " + PPS.Plugin + " but Game Data directory " + baseDataFolder + " cannot be found.");
+                                    }
+                                    PluginDirectoryDict.Add(PPS.Plugin, baseDataFolder);
+                                    break;
+                                }
+
                                 bool dirFound = false;
                                 foreach (var dirName in Directory.GetDirectories(settings.MO2DataPath))
                                 {

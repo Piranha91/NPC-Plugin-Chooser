@@ -24,6 +24,11 @@ namespace NPCAppearancePluginFilterer.Settings
         public string MO2DataPath { get; set; } = "";
 
         [SynthesisOrder]
+        [SynthesisSettingName("Game Directory")]
+        [SynthesisTooltip("Path of your Game Directory (the folder that contains Skyrim(SE/VR).exe. Only required if forwarding NPC appearance from one a vanilla record, otherwise can be left blank.")]
+        public string GameDirPath { get; set; } = "";
+
+        [SynthesisOrder]
         [SynthesisTooltip("Plugins from which NPC appearance should be forwarded.")]
         public HashSet<PerPluginSettings> PluginsToForward { get; set; } = new HashSet<PerPluginSettings>();
 
