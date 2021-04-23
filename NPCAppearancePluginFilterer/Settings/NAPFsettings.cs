@@ -125,7 +125,11 @@ namespace NPCAppearancePluginFilterer.Settings
         public bool InvertSelection { get; set; } = false;
 
         [SynthesisOrder]
-        [SynthesisTooltip("If FaceGen or extra assets are not found in the plugin's MO2 directory, NAPF will search through these additional directories to try to find them.")]
+        [SynthesisTooltip("If not blank, patcher will look in this directory INSTEAD OF the plugin's MO2 directory for FaceGen and Extra Assets.")]
+        public string ForcedAssetDirectory { get; set; } = "";
+
+        [SynthesisOrder]
+        [SynthesisTooltip("If FaceGen or extra assets are not found in the plugin's MO2 directory or its Forced Asset Directory, NAPF will search through these additional directories to try to find them.")]
         public HashSet<string> ExtraDataDirectories { get; set; } = new HashSet<string>();
     }
 }

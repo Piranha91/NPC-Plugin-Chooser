@@ -595,6 +595,16 @@ namespace NPCAppearancePluginFilterer
                         switch (settings.Mode)
                         {
                             case Mode.Deep:
+                                // forced directory overrides even baseDataFolder
+                                if (PPS.ForcedAssetDirectory != "")
+                                {
+                                    if (Directory.Exists(PPS.ForcedAssetDirectory) == false)
+                                    {
+                                        throw new Exception("Could not find forced asset directory for plugin " + PPS.Plugin.ToString() + " at " + PPS.ForcedAssetDirectory);
+                                    }
+                                    PluginDirectoryDict.Add(PPS.Plugin, PPS.ForcedAssetDirectory);
+                                    break;
+                                }
                                 if (settings.BaseGamePlugins.Contains(PPS.Plugin))
                                 {
                                     if (settings.GameDirPath == "")
