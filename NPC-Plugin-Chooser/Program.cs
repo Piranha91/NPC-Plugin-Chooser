@@ -719,8 +719,8 @@ namespace NPCPluginChooser
             var warningsToSuppress = new HashSet<string>(settings.warningsToSuppress_Global.Paths);
             if (warningsToSuppressList.Any()) { warningsToSuppress = warningsToSuppressList.First().Paths; }
 
-            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress);
-            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress);
+            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress, state.DataFolderPath);
+            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress, state.DataFolderPath);
         }
 
         public static void getExtraTexturesFromNif(HashSet<string> NifPaths, string NifDirectory, HashSet<string> outputTextures, HashSet<string> ignoredTextures)
