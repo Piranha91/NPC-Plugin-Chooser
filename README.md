@@ -28,7 +28,7 @@ At this time, the .exe does not have a user interface built in. Instead, you wil
 <h2>Usage</h2>
 The settings of this patcher appear as follows:
 
-![Screenshot](Docs/Images/Main Menu.png)
+![Screenshot](Docs/Images/Main Menu.PNG)
 
 <h3> Main Menu </h3>
 <h4>Mode</h4>
@@ -83,7 +83,7 @@ After forwarding an NPC's record to the output patch, the patcher will also forw
  <h3> Plugins to Forward </h3>
 To select which NPCs from which plugin you wish to forward to the output patch, click **Plugins To Forward** in the main menu. You will be taken to the NPC selection menu, which appears as follows:
 
-![Screenshot](Docs/Images/Plugin Menu.png)
+![Screenshot](Docs/Images/Plugin Menu.PNG.png)
 
 To add NPCs from a new plugin, click the **+** sign to the right of **Plugins To Forward**
 
