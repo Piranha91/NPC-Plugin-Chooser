@@ -4,7 +4,7 @@
 This patcher forwards the appearance of NPCs specified by the user. It copies the chosen NPCs' records into the plugin it builds, forwards their FaceGen to a chosen output directory, and (optionally) forwards the other meshes and textures required for that NPC to the output directory. It is currently built for MO2. Vortex support may come in the future.
 
 ## Installation
-At this time, the .exe does not have a user interface built in. Instead, you will need to add the patcher to Synthesis as a Git Repository and run Synthesis. This will be updated as soon as Synthesis supports exporting patchers with UI. In the meantime, add the patcher to Synthesis by clicking "Git Repository" in the top left corner -> Input tab -> Repository Path = https://github.com/Piranha91/NPC-Appearance-Plugin-Filterer. Choose the only available project from the Project dropdown menu and click the blue circle in the bottom right corner. Configure the settings from the patcher's settings menu, and then either copy the settings to where the .exe is expecting them, or run the patcher directly through Synthesis. Note: it is expected that you run the patcher through MO2, either via Synthesis or directly as the .exe.
+At this time, the .exe does not have a user interface built in. Instead, you will need to add the patcher to Synthesis as a Git Repository and run Synthesis. This will be updated as soon as Synthesis supports exporting patchers with UI. In the meantime, add the patcher to Synthesis by clicking "Git Repository" in the top left corner -> Input tab -> Repository Path = https://github.com/Piranha91/NPC-Plugin-Chooser. Choose the only available project from the Project dropdown menu and click the blue circle in the bottom right corner. Configure the settings from the patcher's settings menu, and then either copy the settings to where the .exe is expecting them, or run the patcher directly through Synthesis. Note: it is expected that you run the patcher through MO2, either via Synthesis or directly as the .exe.
 
 ### Pros and cons of each approach
 
@@ -27,7 +27,7 @@ At this time, the .exe does not have a user interface built in. Instead, you wil
 <h2>Usage</h2>
 The settings of this patcher appear as follows:
 
-![Screenshot](https://raw.github.com/Piranha91/NPC-Appearance-Plugin-Filterer/main/Docs/Images/Main_Menu.PNG)
+![Screenshot](https://raw.github.com/Piranha91/NPC-Plugin-Chooser/main/Docs/Images/Main_Menu.PNG)
 
 ### Main Menu (Synthesis)
 #### Mode
@@ -82,7 +82,7 @@ After forwarding an NPC's record to the output patch, the patcher will also forw
 ### Plugins to Forward
 To select which NPCs from which plugin you wish to forward to the output patch, click **Plugins To Forward** in the main menu. You will be taken to the NPC selection menu, which appears as follows:
 
-![Screenshot](https://raw.github.com/Piranha91/NPC-Appearance-Plugin-Filterer/main/Docs/Images/Plugin_Menu.PNG)
+![Screenshot](https://raw.github.com/Piranha91/NPC-Plugin-Chooser/main/Docs/Images/Plugin_Menu.PNG)
 
 To add NPCs from a new plugin, click the **+** sign to the right of **Plugins To Forward**
 
