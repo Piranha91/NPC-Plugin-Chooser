@@ -108,17 +108,17 @@ Extra directories that the patcher will look in trying to copy Extra Assets. To 
 Only relevant if **Copy Extra Assets** is checked. In some mods, the plugin does not reference all of the textures used by the NPC - instead, some textures can only be found by looking into the .nif files. If checked, the patcher will look into the NPC's referenced .nif files (including the FaceGen Nif) and and forward the additional textures that it finds if they exist within the NPC's mod folder. Some appearance mods work this way (for example Bijin and Pandorable) while others such as the Northbourne series do not. It is recommended to leave this setting enabled, but due to the extra patching time required it has been made accessible per-plugin so that it can be skipped for mods known not to require it.
 
 <h2>FAQ</h2>
-Q: Why doesn't the .exe file have a UI like the Synthesis patcher? Why do I need to copy settings between them?
-A: Currently, when exporting Synthesis patchers to .exe, the UI does not get exported with it. As soon as this changes I will update the patcher to break the Synthesis dependence (but you will still be able to run it via Synthesis if that's what you prefer, and you don't mind the output being named Synthesis.esp).
+Q: Why doesn't the .exe file have a UI like the Synthesis patcher? Why do I need to copy settings between them?<br/>
+A: Currently, when exporting Synthesis patchers to .exe, the UI does not get exported with it. As soon as this changes I will update the patcher to break the Synthesis dependence (but you will still be able to run it via Synthesis if that's what you prefer, and you don't mind the output being named Synthesis.esp).<br/>
 
-Q: I'm using Nordic Faces, which doesn't have a plugin! How do I forward the appearance of Nordic Faces NPCs?
-A: This is what the **Forced Asset Directory** setting is for. For **Plugin** choose Skyrim.esm (or whichever plugin the NPC is first referenced in), and for **Forced Asset Directory** type in the MO2 folder of Nordic Faces (e.g. C:\Games\MO2\mods\Nordic Faces - Immersive Characters Overhaul).
+Q: I'm using Nordic Faces, which doesn't have a plugin! How do I forward the appearance of Nordic Faces NPCs?<br/>
+A: This is what the **Forced Asset Directory** setting is for. For **Plugin** choose Skyrim.esm (or whichever plugin the NPC is first referenced in), and for **Forced Asset Directory** type in the MO2 folder of Nordic Faces (e.g. C:\Games\MO2\mods\Nordic Faces - Immersive Characters Overhaul).<br/>
 
-Q: I've added a lot of plugins and the UI is laggy.
-A: That's not a Q. Furthermore, coding the UI is beyond my current capabilities; I'm depending purely and exclusively on the Synthesis UI and that is how it performs.
+Q: I've added a lot of plugins and the UI is laggy.<br/>
+A: That's not a Q. Furthermore, coding the UI is beyond my current capabilities; I'm depending purely and exclusively on the Synthesis UI and that is how it performs.<br/>
 
-Q: Can you make it so that once you choose a plugin, only NPCs from that plugin are listed when searching by EditorID?
-A: That would be great, but again I am reliant on the Synthesis UI and that is not currently a feature.
+Q: Can you make it so that once you choose a plugin, only NPCs from that plugin are listed when searching by EditorID?<br/>
+A: That would be great, but again I am reliant on the Synthesis UI and that is not currently a feature.<br/>
 
 <h2>Acknowledgements</h2>
 
