@@ -49,7 +49,7 @@ namespace NPCAppearancePluginFilterer.Settings
         public bool ForwardConflictWinnerOutifts { get; set; } = false;
 
         [SynthesisOrder]
-        [SynthesisSettingName("Handle BSA files during patching.")]
+        [SynthesisSettingName("Handle BSA files during patching")]
         [SynthesisTooltip("If checked, the patcher will look inside BSA files for FaceGen and Extra Assets to forward.")]
         public bool HandleBSAFiles_Patching { get; set; } = true;
 
@@ -63,6 +63,7 @@ namespace NPCAppearancePluginFilterer.Settings
         public bool CopyExtraAssets { get; set; } = false;
 
         [SynthesisOrder]
+        [SynthesisSettingName("Abort If Missing FaceGen")]
         [SynthesisTooltip("If checked, the patcher will error out if an expected FaceGen file is not found in a mod's directory (recommended to leave on).")]
         public bool AbortIfMissingFaceGen { get; set; } = true;
 
@@ -134,6 +135,6 @@ namespace NPCAppearancePluginFilterer.Settings
         
         [SynthesisOrder]
         [SynthesisTooltip("If checked, patcher will look in .nif files for additional textures not references in the NPC's plugin. Safer to leave on to avoid missing texture, but slows down patching ~4-5x.")]
-        public bool FindExtraTexturesInNif { get; set; } = true;
+        public bool FindExtraTexturesInNifs { get; set; } = true;
     }
 }

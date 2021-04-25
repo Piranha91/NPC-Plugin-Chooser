@@ -670,7 +670,7 @@ namespace NPCAppearancePluginFilterer
             } // end BSA handling for extra assets found in plugin
 
 
-            if (settings.CopyExtraAssets && PPS.FindExtraTexturesInNif)
+            if (settings.CopyExtraAssets && PPS.FindExtraTexturesInNifs)
             {
                 HashSet<string> alreadyHandledTextures = new HashSet<string>(textures, StringComparer.OrdinalIgnoreCase); // ignored these if found in nif because they have already been processed
                 alreadyHandledTextures.UnionWith(extractedTexFiles); // will simply be empty if settings.HandleBSAFiles_Patching == false
