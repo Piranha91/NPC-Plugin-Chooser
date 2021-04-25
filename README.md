@@ -1,4 +1,4 @@
-# NPC Appearance Plugin Filterer
+# NPC: NPC Plugin Chooser
 
 ## Overview
 This patcher forwards the appearance of NPCs specified by the user. It copies the chosen NPCs' records into the plugin it builds, forwards their FaceGen to a chosen output directory, and (optionally) forwards the other meshes and textures required for that NPC to the output directory. It is currently built for MO2. Vortex support may come in the future.
