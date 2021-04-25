@@ -153,7 +153,7 @@ namespace NPCAppearancePluginFilterer
                                 }
 
                                 var NPCoverride = addNPCtoPatch(npc, settings, state);
-                                copyAssets(NPCoverride, currentModContext.ModKey, settings, currentDataDir, PPS.ExtraDataDirectories, state);
+                                copyAssets(NPCoverride, currentModContext.ModKey, settings, currentDataDir, PPS, state);
                             }
                         }
                     }
@@ -646,7 +646,7 @@ namespace NPCAppearancePluginFilterer
             return PluginDirectoryDict;
         }
 
-        public static void copyAssets(Npc npc, ModKey NPCModKey, NAPFsettings settings, string currentModDirectory, HashSet<string> ExtraDataDirectories, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void copyAssets(Npc npc, ModKey NPCModKey, NAPFsettings settings, string currentModDirectory, PerPluginSettings PPS, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             HashSet<string> meshes = new HashSet<string>();
             HashSet<string> textures = new HashSet<string>();
@@ -670,7 +670,7 @@ namespace NPCAppearancePluginFilterer
             } // end BSA handling for extra assets found in plugin
 
 
-            if (settings.CopyExtraAssets)
+            if (settings.CopyExtraAssets && PPS.FindExtraTexturesInNif)
             {
                 HashSet<string> alreadyHandledTextures = new HashSet<string>(textures, StringComparer.OrdinalIgnoreCase); // ignored these if found in nif because they have already been processed
                 alreadyHandledTextures.UnionWith(extractedTexFiles); // will simply be empty if settings.HandleBSAFiles_Patching == false
@@ -701,8 +701,8 @@ namespace NPCAppearancePluginFilterer
             }
 
             // copy loose files
-            copyAssetFiles(settings, currentModDirectory, meshes, ExtraDataDirectories, "Meshes");
-            copyAssetFiles(settings, currentModDirectory, textures, ExtraDataDirectories, "Textures");
+            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes");
+            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures");
         }
 
         public static void getExtraTexturesFromNif(HashSet<string> NifPaths, string NifDirectory, HashSet<string> outputTextures, HashSet<string> ignoredTextures)

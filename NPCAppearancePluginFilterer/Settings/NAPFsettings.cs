@@ -131,5 +131,9 @@ namespace NPCAppearancePluginFilterer.Settings
         [SynthesisOrder]
         [SynthesisTooltip("If FaceGen or extra assets are not found in the plugin's MO2 directory or its Forced Asset Directory, NAPF will search through these additional directories to try to find them.")]
         public HashSet<string> ExtraDataDirectories { get; set; } = new HashSet<string>();
+        
+        [SynthesisOrder]
+        [SynthesisTooltip("If checked, patcher will look in .nif files for additional textures not references in the NPC's plugin. Safer to leave on to avoid missing texture, but slows down patching ~4-5x.")]
+        public bool FindExtraTexturesInNif { get; set; } = true;
     }
 }
