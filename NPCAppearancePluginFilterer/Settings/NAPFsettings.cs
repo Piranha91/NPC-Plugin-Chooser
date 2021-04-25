@@ -29,12 +29,12 @@ namespace NPCAppearancePluginFilterer.Settings
         public string GameDirPath { get; set; } = "";
 
         [SynthesisOrder]
-        [SynthesisTooltip("Plugins from which NPC appearance should be forwarded.")]
-        public HashSet<PerPluginSettings> PluginsToForward { get; set; } = new HashSet<PerPluginSettings>();
-
-        [SynthesisOrder]
         [SynthesisTooltip("Directory to which meshes and textures should be copied.")]
         public string AssetOutputDirectory { get; set; } = "";
+
+        [SynthesisOrder]
+        [SynthesisTooltip("Plugins from which NPC appearance should be forwarded.")]
+        public HashSet<PerPluginSettings> PluginsToForward { get; set; } = new HashSet<PerPluginSettings>();
 
         [SynthesisOrder]
         [SynthesisTooltip("If checked, the output directory's contents will be cleared between each run (so that if an NPC is removed from your transfer list, their associated meshes and textures won't remain).")]
