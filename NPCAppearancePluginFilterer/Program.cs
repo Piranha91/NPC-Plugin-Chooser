@@ -658,81 +658,140 @@ namespace NPCAppearancePluginFilterer
 
             if (settings.CopyExtraAssets)
             {
-                //headparts
-                foreach (var hp in npc.HeadParts)
-                {
-                    if (!settings.PluginsExcludedFromMerge.Contains(hp.FormKey.ModKey))
-                    {
-                        getHeadPartAssetPaths(hp, textures, meshes, settings.PluginsExcludedFromMerge, state);
-                    }
-                }
-
-                // armor and armature
-                if (npc.WornArmor != null && state.LinkCache.TryResolve<IArmorGetter>(npc.WornArmor.FormKey, out var wnamGetter) && wnamGetter.Armature != null)
-                {
-                    foreach (var aa in wnamGetter.Armature)
-                    {
-                        if (!settings.PluginsExcludedFromMerge.Contains(aa.FormKey.ModKey))
-                        {
-                            {
-                                getARMAAssetPaths(aa, textures, meshes, settings.PluginsExcludedFromMerge, state);
-                            }
-                        }
-                    }
-                }
+                getAssetsReferencedByplugin(npc, settings, meshes, textures, state);
             }
 
             //extract needed files from BSA
-            if (settings.HandleBSAFiles_Patching)
+            HashSet<string> extractedMeshFiles = new HashSet<string>();
+            HashSet<string> extractedTexFiles = new HashSet<string>();
+            if (settings.HandleBSAFiles_Patching) // if settings.CopyExtraAssets is disabled, then only FaceGen will be extracted here (if in BSA)
             {
-                HashSet<string> extractedMeshFiles = new HashSet<string>();
-                HashSet<string> extractedTexFiles = new HashSet<string>();
+                unpackAssetsFromBSA(meshes, textures, extractedMeshFiles, extractedTexFiles, NPCModKey, currentModDirectory, settings); // meshes and textures are edited in this function - found & extracted files are removed from the HashSets. Only loose files remain
+            } // end BSA handling for extra assets found in plugin
 
-                var BSAreaders = BSAHandler.openBSAArchiveReaders(currentModDirectory, NPCModKey);
-                foreach (string subPath in meshes)
+
+            if (settings.CopyExtraAssets)
+            {
+                HashSet<string> alreadyHandledTextures = new HashSet<string>(textures, StringComparer.OrdinalIgnoreCase); // ignored these if found in nif because they have already been processed
+                alreadyHandledTextures.UnionWith(extractedTexFiles); // will simply be empty if settings.HandleBSAFiles_Patching == false
+
+                HashSet<string> extraTexturesFromNif = new HashSet<string>();
+                getExtraTexturesFromNif(meshes, currentModDirectory, extraTexturesFromNif, alreadyHandledTextures); //traverse nifs for extra textures (loose nifs - in mod folder)
+
+                if (settings.HandleBSAFiles_Patching)
                 {
-                    string meshPath = Path.Combine("meshes", subPath);
-                    foreach (var reader in BSAreaders)
+                    getExtraTexturesFromNif(extractedMeshFiles, settings.AssetOutputDirectory, extraTexturesFromNif, alreadyHandledTextures); //traverse nifs for extra textures (BSA extracted nifs - in output folder)
+                    
+                    // extract these additional textures from BSA if possible
+                    HashSet<string> ExtractedExtraTextures = new HashSet<string>();
+                    unpackAssetsFromBSA(new HashSet<string>(), extraTexturesFromNif, new HashSet<string>(), ExtractedExtraTextures, NPCModKey, currentModDirectory, settings); // if any additional textures live the BSA, unpack them
+                    
+                    // remove BSA-unpacked textures from the additional texture list
+                    foreach (string s in ExtractedExtraTextures)
                     {
-                        if (BSAHandler.TryGetFile(meshPath, reader, out var file) && file != null)
-                        {
-                            extractedMeshFiles.Add(subPath);
-                            string destFile = Path.Combine(settings.AssetOutputDirectory, meshPath);
-                            BSAHandler.extractFileFromBSA(file, destFile);
-                            break;
-                        }
+                        extraTexturesFromNif.Remove(s);
                     }
                 }
-
-                foreach (string subPath in textures)
+                // copy extra texture list to output texture list
+                foreach (string s in extraTexturesFromNif)
                 {
-                    string texPath = Path.Combine("textures", subPath);
-                    foreach (var reader in BSAreaders)
-                    {
-                        if (BSAHandler.TryGetFile(texPath, reader, out var file) && file != null)
-                        {
-                            extractedTexFiles.Add(subPath);
-                            string destFile = Path.Combine(settings.AssetOutputDirectory, texPath);
-                            BSAHandler.extractFileFromBSA(file, destFile);
-                            break;
-                        }
-                    }
+                    textures.Add(s);
                 }
 
-                // remove extracted files from list, which should now only contain loose files
-                foreach (string s in extractedMeshFiles)
-                {
-                    meshes.Remove(s);
-                }
-                foreach (String s in extractedTexFiles)
-                {
-                    textures.Remove(s);
-                }
             }
 
             // copy loose files
             copyAssetFiles(settings, currentModDirectory, meshes, ExtraDataDirectories, "Meshes");
             copyAssetFiles(settings, currentModDirectory, textures, ExtraDataDirectories, "Textures");
+        }
+
+        public static void getExtraTexturesFromNif(HashSet<string> NifPaths, string NifDirectory, HashSet<string> outputTextures, HashSet<string> ignoredTextures)
+        {
+            foreach (var nifpath in NifPaths)
+            {
+                string fullPath = Path.Combine(NifDirectory, "meshes", nifpath);
+                if (Path.GetExtension(nifpath) == ".nif" && File.Exists(fullPath))
+                {
+                    var nifTextures = NifHandler.getExtraTexturesFromNif(fullPath);
+                    foreach (var t in nifTextures)
+                    {
+                        if (outputTextures.Contains(t) == false && ignoredTextures.Contains(t) == false)
+                        {
+                            outputTextures.Add(t);
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void unpackAssetsFromBSA(HashSet<string> MeshesToExtract, HashSet<string> TexturesToExtract, HashSet<string> extractedMeshes, HashSet<string> ExtractedTextures, ModKey currentModKey, string currentModDirectory, NAPFsettings settings)
+        {
+            var BSAreaders = BSAHandler.openBSAArchiveReaders(currentModDirectory, currentModKey);
+            foreach (string subPath in MeshesToExtract)
+            {
+                string meshPath = Path.Combine("meshes", subPath);
+                foreach (var reader in BSAreaders)
+                {
+                    if (BSAHandler.TryGetFile(meshPath, reader, out var file) && file != null)
+                    {
+                        extractedMeshes.Add(subPath);
+                        string destFile = Path.Combine(settings.AssetOutputDirectory, meshPath);
+                        BSAHandler.extractFileFromBSA(file, destFile);
+                        break;
+                    }
+                }
+            }
+
+            foreach (string subPath in TexturesToExtract)
+            {
+                string texPath = Path.Combine("textures", subPath);
+                foreach (var reader in BSAreaders)
+                {
+                    if (BSAHandler.TryGetFile(texPath, reader, out var file) && file != null)
+                    {
+                        ExtractedTextures.Add(subPath);
+                        string destFile = Path.Combine(settings.AssetOutputDirectory, texPath);
+                        BSAHandler.extractFileFromBSA(file, destFile);
+                        break;
+                    }
+                }
+            }
+
+            // remove extracted files from list, which should now only contain loose files
+            foreach (string s in extractedMeshes)
+            {
+                MeshesToExtract.Remove(s);
+            }
+            foreach (String s in ExtractedTextures)
+            {
+                TexturesToExtract.Remove(s);
+            }
+        }
+
+        public static void getAssetsReferencedByplugin(Npc npc, NAPFsettings settings, HashSet<string> meshes, HashSet<string> textures, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            //headparts
+            foreach (var hp in npc.HeadParts)
+            {
+                if (!settings.PluginsExcludedFromMerge.Contains(hp.FormKey.ModKey))
+                {
+                    getHeadPartAssetPaths(hp, textures, meshes, settings.PluginsExcludedFromMerge, state);
+                }
+            }
+
+            // armor and armature
+            if (npc.WornArmor != null && state.LinkCache.TryResolve<IArmorGetter>(npc.WornArmor.FormKey, out var wnamGetter) && wnamGetter.Armature != null)
+            {
+                foreach (var aa in wnamGetter.Armature)
+                {
+                    if (!settings.PluginsExcludedFromMerge.Contains(aa.FormKey.ModKey))
+                    {
+                        {
+                            getARMAAssetPaths(aa, textures, meshes, settings.PluginsExcludedFromMerge, state);
+                        }
+                    }
+                }
+            }
         }
 
         public static (string, string) getFaceGenSubPathStrings(FormKey npcFormKey)
