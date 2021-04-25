@@ -8,7 +8,7 @@ At this time, the .exe does not have a user interface built in. Instead, you wil
 
 ### Transferring settings from Synthesis to the standalone patcher
 Configure the settings in Synthesis to reflect your preferences. Then, you will need to actually run the patcher to generate or update the settings.json file. However, if you like, you can immediately stop the patcher by clicking the faded Abort button:
-![Screenshot](https://raw.github.com/Piranha91/NPC-Plugin-Chooser/main/Docs/Images/Abort_Button.PNG)
+![Screenshot](https://raw.github.com/Piranha91/NPC-Plugin-Chooser/main/Docs/Images/Abort_Button.png)
 Now, you should have a settings.json file in your Synthesis\Data\NPC-Appearance-Plugin-Filterer folder. Copy that file to `NPC 1.x\Data`, replacing the settings.json file that already exists there. Then you can add the patcher as an executable in MO2 and run it. 
 
 ### Pros and cons of each approach
