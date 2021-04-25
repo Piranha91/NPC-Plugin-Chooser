@@ -851,7 +851,7 @@ namespace NPCPluginChooser
                                 break;
                             }
                         }
-                        if (bFileExists == false && settings.GetMissingExtraAssetsFromAvailableWinners)
+                        if (bFileExists == false && settings.GetMissingExtraAssetsFromAvailableWinners && s.IndexOf("actors\\character\\facegendata\\facetint") != 0 && s.IndexOf("actors\\character\\facegendata\\facegeom") != 0) // if enabled & asset is not FaceGen, look for it in global data path.
                         {
                             currentPath = Path.Join(gameDataFolder, type, s);
                             if (File.Exists(currentPath))
@@ -863,7 +863,11 @@ namespace NPCPluginChooser
 
                     if (bFileExists == false)
                     {
-                        if (settings.SuppressAllMissingFileWarnings || (!(settings.SuppressKnownMissingFileWarnings && (warningsToSuppress.Any(s => s.Equals(s, StringComparison.OrdinalIgnoreCase)) || getExtensionOfMissingFile(s) == ".tri")))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
+                        bool suppressMeSpecifically = settings.SuppressKnownMissingFileWarnings && (warningsToSuppress.Any(s => s.Equals(s, StringComparison.OrdinalIgnoreCase)));
+                        bool isTriFile = getExtensionOfMissingFile(s) == ".tri";
+                        bool suppressThis = settings.SuppressAllMissingFileWarnings || suppressMeSpecifically || isTriFile;
+
+                        if (!suppressThis) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
                         {
                             if (settings.AbortIfMissingExtraAssets)
                             {
