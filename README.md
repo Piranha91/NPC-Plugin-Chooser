@@ -73,6 +73,12 @@ If checked, the patcher will error out if it cannot find the FaceGen files that 
 #### Abort If Missing Extra Assets
 If checked, the patcher will error out if it cannot find non-FaceGen meshes or textures referenced by the the NPC's plugin (or optionally its meshes as well; see below). Note that the patcher will only look in an NPC's mod folder, so if you have an NPC that requires KS Hairs (for example) to be installed as a separate mod, it won't find those assets and will error out. Therefore, recommended to uncheck unless you're *sure* all of your NPC appearance mods are self-contained.
 
+#### Get Missing Extra Assets From Available Winners
+If checked, the patcher will look in the full available data folder for **Extra Assets** that are not within the **Plugin**'s home folder or any specified **Extra Data Folders**. Note that this will grab the conflict winner for that particular mesh or texture.
+
+#### Suppress All Missing File Warnings
+If checked, the patcher will not warn of files that it expected to find in the **Plugin**'s home folder or its specified **Extra Data Directories**. Note that not all warnings are "real", in the sense that some NPC mods are distributed with missing texture or mesh paths that don't affect the final appearance.
+
 #### Suppress Known Missing File Warnings
 Some NPC appearance plugins reference meshes and textures that aren't distributed with the mod itself, and are not required for the mod to look correct. For example, the Bijin series references `.tri` files that aren't distributed with the mod. If checked, the patcher will compare all files that it expects to find and can't against a list located in Warnings To Suppress.json and skip warning the user if the file is in that list. That file was made based on my own load order; you may want to edit it as required by yours. Please contact me with additional submissions for this list.
 
