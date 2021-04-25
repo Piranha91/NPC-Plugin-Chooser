@@ -100,7 +100,7 @@ namespace NPCAppearancePluginFilterer.Settings
         public HashSet<string> pathsToIgnore { get; set; } = new HashSet<string>();
 
         [SynthesisIgnoreSetting]
-        public HashSet<string> warningsToSuppress { get; set; } = new HashSet<string>();
+        public HashSet<suppressedWarnings> warningsToSuppress { get; set; } = new HashSet<suppressedWarnings>();
     }
 
     public enum Mode
@@ -136,5 +136,11 @@ namespace NPCAppearancePluginFilterer.Settings
         [SynthesisOrder]
         [SynthesisTooltip("If checked, patcher will look in .nif files for additional textures not references in the NPC's plugin. Safer to leave on to avoid missing texture, but slows down patching ~4-5x.")]
         public bool FindExtraTexturesInNifs { get; set; } = true;
+    }
+
+    public class suppressedWarnings
+    {
+        public string Plugin { get; set; } = "";
+        public HashSet<string> Paths { get; set; } = new HashSet<string>();
     }
 }

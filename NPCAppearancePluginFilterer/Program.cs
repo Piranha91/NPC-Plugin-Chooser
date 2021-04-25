@@ -504,20 +504,28 @@ namespace NPCAppearancePluginFilterer
 
             try
             {
-                var tempJArray = JArray.Parse(File.ReadAllText(settingsPath));
-                foreach (var s in tempJArray)
+                string filePath = File.ReadAllText(settingsPath);
+                var tmp = JsonConvert.DeserializeObject<List<suppressedWarnings>>(filePath);
+
+                if (tmp == null)
                 {
-                    settings.warningsToSuppress.Add(s.ToString().Replace(@"\\", @"\"));
+                    throw new Exception("Could not deserialize the list of suppressed file warnings at " + settingsPath + ". Please make sure you don't have an old version, and that you introduced JSON format errors if you edited it yourself.");
                 }
 
-                if (settings.SuppressKnownMissingFileWarnings)
+                foreach (var sw in tmp)
                 {
-                    Console.WriteLine("Found list of known missing files to suppress (contains {0} entries).", settings.warningsToSuppress.Count);
+                    var updated = new suppressedWarnings();
+                    updated.Plugin = sw.Plugin;
+                    foreach (string s in sw.Paths)
+                    {
+                        updated.Paths.Add(s.ToString().Replace(@"\\", @"\"));
+                    }
+                    settings.warningsToSuppress.Add(updated);
                 }
             }
             catch
             {
-                throw new Exception("Could not parse the list of known missing files (expected at: " + settingsPath + ").");
+                throw new Exception("Failed to deserialize the list of suppressed file warnings at " + settingsPath + ". Please make sure you don't have an old version, and that you introduced JSON format errors if you edited it yourself.");
             }
         }
 
@@ -701,8 +709,12 @@ namespace NPCAppearancePluginFilterer
             }
 
             // copy loose files
-            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes");
-            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures");
+            var warningsToSuppressList = settings.warningsToSuppress.Where(w => w.Plugin.Equals(PPS.Plugin.ToString(), StringComparison.OrdinalIgnoreCase));
+            var warningsToSuppress = new suppressedWarnings();
+            if (warningsToSuppressList.Any()) { warningsToSuppress = warningsToSuppressList.First(); }
+
+            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress.Paths);
+            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress.Paths);
         }
 
         public static void getExtraTexturesFromNif(HashSet<string> NifPaths, string NifDirectory, HashSet<string> outputTextures, HashSet<string> ignoredTextures)
@@ -801,7 +813,7 @@ namespace NPCAppearancePluginFilterer
             return (meshPath, texPath);
         }
 
-        public static void copyAssetFiles(NAPFsettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type)
+        public static void copyAssetFiles(NAPFsettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type, HashSet<string> warningsToSuppress)
         {
             string outputPrepend = Path.Combine(settings.AssetOutputDirectory, type);
             if (Directory.Exists(outputPrepend) == false)
@@ -837,7 +849,7 @@ namespace NPCAppearancePluginFilterer
 
                     if (bFileExists == false)
                     {
-                        if (!(settings.SuppressKnownMissingFileWarnings && settings.warningsToSuppress.Any(s => s.Equals(s, StringComparison.OrdinalIgnoreCase)))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
+                        if (!(settings.SuppressKnownMissingFileWarnings && warningsToSuppress.Any(s => s.Equals(s, StringComparison.OrdinalIgnoreCase)))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
                         {
                             if (settings.AbortIfMissingExtraAssets)
                             {
