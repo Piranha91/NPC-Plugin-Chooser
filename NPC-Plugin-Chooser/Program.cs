@@ -6,18 +6,18 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using System.Threading.Tasks;
 using System.IO;
-using NPCAppearancePluginFilterer.Settings;
+using NPCPluginChooser.Settings;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Converters;
 using Noggog.Utility;
 using Mutagen.Bethesda.Json;
 
-namespace NPCAppearancePluginFilterer
+namespace NPCPluginChooser
 {
     public class Program
     {
-        static Lazy<NAPFsettings> Settings = null!;
+        static Lazy<PatcherSettings> Settings = null!;
         public static async Task<int> Main(string[] args)
         {
             return await SynthesisPipeline.Instance
@@ -26,13 +26,13 @@ namespace NPCAppearancePluginFilterer
                     path: "settings.json",
                     out Settings)
                 .AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
-                .SetTypicalOpen(GameRelease.SkyrimSE, "NAPF Output.esp")
+                .SetTypicalOpen(GameRelease.SkyrimSE, "NPC Appearance.esp")
                 .Run(args);
         }
 
         private static void CanRunPatch(IRunnabilityState state)
         {
-            NAPFsettings settings = Settings.Value;
+            PatcherSettings settings = Settings.Value;
             if (settings.AssetOutputDirectory != "" && !Directory.Exists(settings.AssetOutputDirectory))
             {
                 throw new Exception("Cannot find output directory specified in settings: " + settings.AssetOutputDirectory);
@@ -51,9 +51,9 @@ namespace NPCAppearancePluginFilterer
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            NAPFsettings settings = Settings.Value;
+            PatcherSettings settings = Settings.Value;
 
-            NAPFsettings outputSettings = new NAPFsettings(); // only used if Mode == SettingsGen
+            PatcherSettings outputSettings = new PatcherSettings(); // only used if Mode == SettingsGen
 
             Dictionary<ModKey, string> PluginDirectoryDict = initPluginDirectoryDict(settings, state);
 
@@ -111,7 +111,7 @@ namespace NPCAppearancePluginFilterer
 
                     string jsonStr = JsonConvert.SerializeObject(outputSettings, jsonSettings);
                     File.WriteAllText(outputPath, jsonStr);
-                    Console.WriteLine("Wrote current settings to {0}. Use this file as a backup of your current settings by renaming it to \"settings.json\" and placing it into your Synthesis\\Data\\NPC-Appearance-Plugin-Filterer folder.", outputPath);
+                    Console.WriteLine("Wrote current settings to {0}. Use this file as a backup of your current settings by renaming it to \"settings.json\" and placing it into your Synthesis\\Data\\NPC-Plugin-Chooser folder.", outputPath);
                 }
                 catch
                 {
@@ -168,7 +168,7 @@ namespace NPCAppearancePluginFilterer
             }
         }      
 
-        public static Npc addNPCtoPatch(INpcGetter userSelectedNPC, NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static Npc addNPCtoPatch(INpcGetter userSelectedNPC, PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             switch (settings.ForwardConflictWinnerData)
             {
@@ -273,7 +273,7 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        public static void clearOuptutDir(NAPFsettings settings)
+        public static void clearOuptutDir(PatcherSettings settings)
         {
             string mPath = Path.Combine(settings.AssetOutputDirectory, "meshes");
             if (Directory.Exists(mPath))
@@ -303,7 +303,7 @@ namespace NPCAppearancePluginFilterer
                 }
             }
         }
-        public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, NAPFsettings settings, NAPFsettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, PatcherSettings settings, PatcherSettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey);
             
@@ -494,7 +494,7 @@ namespace NPCAppearancePluginFilterer
             return true;
         }
 
-        public static void getWarningsToSuppress(NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void getWarningsToSuppress(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             string settingsPath = Path.Combine(state.ExtraSettingsDataPath, "Warnings To Suppress.json");
             if (!File.Exists(settingsPath) && settings.SuppressKnownMissingFileWarnings)
@@ -529,7 +529,7 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        public static void getPathstoIgnore(NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void getPathstoIgnore(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             string settingsPath = Path.Combine(state.ExtraSettingsDataPath, "Paths To Ignore.json");
             if (!File.Exists(settingsPath))
@@ -551,7 +551,7 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        public static Dictionary<ModKey, string> initPluginDirectoryDict(NAPFsettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static Dictionary<ModKey, string> initPluginDirectoryDict(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             Dictionary<ModKey, string> PluginDirectoryDict = new Dictionary<ModKey, string>();
             if (settings.MO2DataPath == null || settings.MO2DataPath.Length == 0)
@@ -654,7 +654,7 @@ namespace NPCAppearancePluginFilterer
             return PluginDirectoryDict;
         }
 
-        public static void copyAssets(Npc npc, ModKey NPCModKey, NAPFsettings settings, string currentModDirectory, PerPluginSettings PPS, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void copyAssets(Npc npc, ModKey NPCModKey, PatcherSettings settings, string currentModDirectory, PerPluginSettings PPS, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             HashSet<string> meshes = new HashSet<string>();
             HashSet<string> textures = new HashSet<string>();
@@ -736,7 +736,7 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        public static void unpackAssetsFromBSA(HashSet<string> MeshesToExtract, HashSet<string> TexturesToExtract, HashSet<string> extractedMeshes, HashSet<string> ExtractedTextures, ModKey currentModKey, string currentModDirectory, NAPFsettings settings)
+        public static void unpackAssetsFromBSA(HashSet<string> MeshesToExtract, HashSet<string> TexturesToExtract, HashSet<string> extractedMeshes, HashSet<string> ExtractedTextures, ModKey currentModKey, string currentModDirectory, PatcherSettings settings)
         {
             var BSAreaders = BSAHandler.openBSAArchiveReaders(currentModDirectory, currentModKey);
             foreach (string subPath in MeshesToExtract)
@@ -780,7 +780,7 @@ namespace NPCAppearancePluginFilterer
             }
         }
 
-        public static void getAssetsReferencedByplugin(Npc npc, NAPFsettings settings, HashSet<string> meshes, HashSet<string> textures, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void getAssetsReferencedByplugin(Npc npc, PatcherSettings settings, HashSet<string> meshes, HashSet<string> textures, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             //headparts
             foreach (var hp in npc.HeadParts)
@@ -813,7 +813,7 @@ namespace NPCAppearancePluginFilterer
             return (meshPath, texPath);
         }
 
-        public static void copyAssetFiles(NAPFsettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type, HashSet<string> warningsToSuppress)
+        public static void copyAssetFiles(PatcherSettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type, HashSet<string> warningsToSuppress)
         {
             string outputPrepend = Path.Combine(settings.AssetOutputDirectory, type);
             if (Directory.Exists(outputPrepend) == false)

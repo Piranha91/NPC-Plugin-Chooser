@@ -7,7 +7,7 @@ using System.IO;
 using nifly;
 
 
-namespace NPCAppearancePluginFilterer
+namespace NPCPluginChooser
 {
     class NifHandler
     {

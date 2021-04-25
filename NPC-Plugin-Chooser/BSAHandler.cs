@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Mutagen.Bethesda;
 using System.IO;
 
-namespace NPCAppearancePluginFilterer
+namespace NPCPluginChooser
 {
     class BSAHandler
     {

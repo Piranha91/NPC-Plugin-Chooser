@@ -10,9 +10,9 @@ using Mutagen.Bethesda.Skyrim;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace NPCAppearancePluginFilterer.Settings
+namespace NPCPluginChooser.Settings
 {
-    public class NAPFsettings
+    public class PatcherSettings
     {
         [SynthesisOrder]
         [SynthesisTooltip("Simple: assumes that the NPC records and associated meshes and textures are conflict winners.\nDeep: Searches through conflict losers as well as winners to forward the correct records (requires MO2 path to be set).\nSettingsGen: Instead of forwarding NPC records, the program will scan your current winning NPC overrides and genrate a settings.json to use based on your current setup (requires MO2 path to be set).")]

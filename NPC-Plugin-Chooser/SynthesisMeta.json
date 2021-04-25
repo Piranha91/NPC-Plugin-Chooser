@@ -1,5 +1,5 @@
 {
-  "Nickname": "NPCAppearancePluginFilterer",
+  "Nickname": "NPC-Plugin-Chooser",
   "Visibility": "Exclude",
   "OneLineDescription": "Filters NPC Appearance plugins to only preserve (or remove) the selected NPCs.",
   "LongDescription": "Copies NPC appearance data to the output Synthesis plugin. Assets (meshes and textures) are output to your specified directory so that they can easily be added to a zip file and installed via a mod manager. Useful for mixing & matching appearance mods to make custom merges.",

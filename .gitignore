@@ -347,4 +347,4 @@ healthchecksdb
 
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
-NPCAppearancePluginFilterer/Properties/launchSettings.json
+NPC-Plugin-Chooser/Properties/launchSettings.json
