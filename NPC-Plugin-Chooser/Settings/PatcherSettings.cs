@@ -72,6 +72,14 @@ namespace NPCPluginChooser.Settings
         public bool AbortIfMissingExtraAssets { get; set; } = false;
 
         [SynthesisOrder]
+        [SynthesisTooltip("If an expected Extra Asset doesn't exist in the mod's MO2 folder, the patcher will search all mods and choose the conflict-winning asset at the same path, if it exists.")]
+        public bool GetMissingExtraAssetsFromAvailableWinners { get; set; } = false;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("Suppresses all log warnings about missing files.")]
+        public bool SuppressAllMissingFileWarnings { get; set; } = false;
+
+        [SynthesisOrder]
         [SynthesisTooltip("Some plugins reference files that don't exist in their own download - for example the Bijin series references a bunch of .tri files that don't ship with the mod. While I can't account for every mod that exists, this settings suppresses \"file could not be found\" warnings from mods with known missing files so that any warnings you do see are more likely to be real.")]
         public bool SuppressKnownMissingFileWarnings { get; set; } = true;
 
@@ -101,6 +109,8 @@ namespace NPCPluginChooser.Settings
 
         [SynthesisIgnoreSetting]
         public HashSet<suppressedWarnings> warningsToSuppress { get; set; } = new HashSet<suppressedWarnings>();
+        [SynthesisIgnoreSetting]
+        public suppressedWarnings warningsToSuppress_Global { get; set; } = new suppressedWarnings();
     }
 
     public enum Mode

@@ -58,6 +58,7 @@ namespace NPCPluginChooser
             Dictionary<ModKey, string> PluginDirectoryDict = initPluginDirectoryDict(settings, state);
 
             getWarningsToSuppress(settings, state);
+            getPathstoIgnore(settings, state);
 
             if (settings.AssetOutputDirectory != "" && Directory.Exists(settings.AssetOutputDirectory) && settings.ClearAssetOutputDirectory && settings.Mode != Mode.SettingsGen)
             {
@@ -66,7 +67,7 @@ namespace NPCPluginChooser
 
             if (settings.Mode == Mode.SettingsGen)
             {
-                string settingsDirName = "NAPF Settings";
+                string settingsDirName = "NPC Settings";
                 outputSettings.AssetOutputDirectory = settings.AssetOutputDirectory;
                 outputSettings.ClearAssetOutputDirectory = settings.ClearAssetOutputDirectory;
                 outputSettings.CopyExtraAssets = settings.CopyExtraAssets;
@@ -521,6 +522,11 @@ namespace NPCPluginChooser
                         updated.Paths.Add(s.ToString().Replace(@"\\", @"\"));
                     }
                     settings.warningsToSuppress.Add(updated);
+
+                    if (updated.Plugin.ToLower() == "global")
+                    {
+                        settings.warningsToSuppress_Global = updated;
+                    }
                 }
             }
             catch
@@ -710,11 +716,11 @@ namespace NPCPluginChooser
 
             // copy loose files
             var warningsToSuppressList = settings.warningsToSuppress.Where(w => w.Plugin.Equals(PPS.Plugin.ToString(), StringComparison.OrdinalIgnoreCase));
-            var warningsToSuppress = new suppressedWarnings();
-            if (warningsToSuppressList.Any()) { warningsToSuppress = warningsToSuppressList.First(); }
+            var warningsToSuppress = new HashSet<string>(settings.warningsToSuppress_Global.Paths);
+            if (warningsToSuppressList.Any()) { warningsToSuppress = warningsToSuppressList.First().Paths; }
 
-            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress.Paths);
-            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress.Paths);
+            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress);
+            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress);
         }
 
         public static void getExtraTexturesFromNif(HashSet<string> NifPaths, string NifDirectory, HashSet<string> outputTextures, HashSet<string> ignoredTextures)
@@ -813,7 +819,7 @@ namespace NPCPluginChooser
             return (meshPath, texPath);
         }
 
-        public static void copyAssetFiles(PatcherSettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type, HashSet<string> warningsToSuppress)
+        public static void copyAssetFiles(PatcherSettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type, HashSet<string> warningsToSuppress, string gameDataFolder)
         {
             string outputPrepend = Path.Combine(settings.AssetOutputDirectory, type);
             if (Directory.Exists(outputPrepend) == false)
@@ -845,11 +851,19 @@ namespace NPCPluginChooser
                                 break;
                             }
                         }
+                        if (bFileExists == false && settings.GetMissingExtraAssetsFromAvailableWinners)
+                        {
+                            currentPath = Path.Join(gameDataFolder, type, s);
+                            if (File.Exists(currentPath))
+                            {
+                                bFileExists = true;
+                            }
+                        }
                     }
 
                     if (bFileExists == false)
                     {
-                        if (!(settings.SuppressKnownMissingFileWarnings && warningsToSuppress.Any(s => s.Equals(s, StringComparison.OrdinalIgnoreCase)))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
+                        if (settings.SuppressAllMissingFileWarnings || (!(settings.SuppressKnownMissingFileWarnings && (warningsToSuppress.Any(s => s.Equals(s, StringComparison.OrdinalIgnoreCase)) || getExtensionOfMissingFile(s) == ".tri")))) // nested if statement intentional; otherwise a suppressed warning goes into the else block despite the target file not existing
                         {
                             if (settings.AbortIfMissingExtraAssets)
                             {
@@ -889,6 +903,15 @@ namespace NPCPluginChooser
                     }
                 }
             }
+        }
+
+        public static string getExtensionOfMissingFile(string input)
+        {
+            if (input == "") { return ""; }
+
+            input = input.ToLower();
+            var split = input.Split('.');
+            return "." + split[split.Length - 1];
         }
 
         public static bool isIgnored (string s, HashSet<string> toIgnore)
