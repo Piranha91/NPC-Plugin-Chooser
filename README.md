@@ -4,11 +4,13 @@
 This patcher forwards the appearance of NPCs specified by the user. It copies the chosen NPCs' records into the plugin it builds, forwards their FaceGen to a chosen output directory, and (optionally) forwards the other meshes and textures required for that NPC to the output directory. It is currently built for MO2. Vortex support may come in the future.
 
 ## Installation
-At this time, the .exe does not have a user interface built in. Instead, you will need to add the patcher to Synthesis as a Git Repository and run Synthesis (**through MO2**). This will be updated as soon as Synthesis supports exporting patchers with UI. In the meantime, add the patcher to Synthesis by clicking "Git Repository" in the top left corner -> Input tab -> Repository Path = https://github.com/Piranha91/NPC-Plugin-Chooser. Choose the only available project from the Project dropdown menu and click the blue circle in the bottom right corner. Configure the settings from the patcher's settings menu and then either copy the settings to where the .exe is expecting them, or run the patcher directly through Synthesis. Note: it is expected that you run the patcher through MO2, either via Synthesis or directly as the .exe.
+Extract the downloaded folder to your drive. I prefer `Mod Organizer 2\tools`. Add `NPC-Plugin-Chooser.exe` as an executable in MO2. At this time, the .exe does not have a user interface built in. Instead, you will need to add the patcher to Synthesis as a Git Repository and run Synthesis (**through MO2**). This will be updated as soon as Synthesis supports exporting patchers with UI. In the meantime, add the patcher to Synthesis by clicking "Git Repository" in the top left corner -> Input tab -> Repository Path = https://github.com/Piranha91/NPC-Plugin-Chooser. Choose the only available project from the Project dropdown menu and click the blue circle in the bottom right corner. Configure the settings from the patcher's settings menu and then either copy the settings to where the .exe is expecting them, or run the patcher directly through Synthesis. **Note: it is expected that you run the patcher through MO2, either via Synthesis or directly as the .exe.**
 
 ### Transferring settings from Synthesis to the standalone patcher
 Configure the settings in Synthesis to reflect your preferences. Then, you will need to actually run the patcher to generate or update the settings.json file. However, if you like, you can immediately stop the patcher by clicking the faded Abort button:
-![Screenshot](https://raw.github.com/Piranha91/NPC-Plugin-Chooser/main/Docs/Images/Abort_Button.PNG)
+
+![Screenshot](https://raw.github.com/Piranha91/NPC-Plugin-Chooser/main/Docs/Images/Abort_Button.png)
+
 Now, you should have a settings.json file in your Synthesis\Data\NPC-Appearance-Plugin-Filterer folder. Copy that file to `NPC 1.x\Data`, replacing the settings.json file that already exists there. Then you can add the patcher as an executable in MO2 and run it. 
 
 ### Pros and cons of each approach
