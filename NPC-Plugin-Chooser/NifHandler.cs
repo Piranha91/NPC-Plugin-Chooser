@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
-using nifly;
+//using nifly;
 
 
 namespace NPCPluginChooser
@@ -14,13 +14,14 @@ namespace NPCPluginChooser
         public static HashSet<string> getExtraTexturesFromNif(string nifPath)
         {
             HashSet<string> ExtraTextures = new HashSet<string>();
-
+            /*
             using (NifFile nif = new NifFile())
             {
                 nif.Load(nifPath);
                 ExtraTextures = new niflycpp.TextureFinder(nif.GetHeader()).UniqueTextures.ToHashSet<string>();
                 return removeTopFolderFromPath(ExtraTextures, "textures");
-            }
+            }*/
+            return ExtraTextures; // REMOVE ME WHEN DEPENDENCYY IS RESOLVED
         }
 
         // Textures in Nifs are referenced from Textures folder, whereas in plugins they are referenced from WITHIN the Textures folder. This function is made to remove "textures\\" from nif-derived texture paths
@@ -42,8 +43,4 @@ namespace NPCPluginChooser
             return output;
         }
     }
-}
-public class TextureFinder
-{
-    
 }
