@@ -183,7 +183,7 @@ namespace NPCPluginChooser
                         var winningOR = allContexts[^2].Record;
                         var forwardedOR = state.PatchMod.Npcs.GetOrAddAsOverride(winningOR);
 
-                        if (userSelectedNPC.DefaultOutfit != null && settings.ForwardConflictWinnerOutifts)
+                        if (!settings.ForwardConflictWinnerOutifts)
                         {
                             forwardedOR.DefaultOutfit.SetTo(userSelectedNPC.DefaultOutfit);
                         }
@@ -222,98 +222,32 @@ namespace NPCPluginChooser
                             forwardedOR.FaceParts = null;
                         }
 
-                        if (userSelectedNPC.FarAwayModel != null)
-                        {
-                            forwardedOR.FarAwayModel.SetTo(userSelectedNPC.FarAwayModel);
-                        }
-                        else
-                        {
-                            forwardedOR.FarAwayModel.Clear();
-                        }
+                        forwardedOR.FarAwayModel.SetTo(userSelectedNPC.FarAwayModel);
 
-                        if (userSelectedNPC.HairColor != null)
-                        {
-                            forwardedOR.HairColor.SetTo(userSelectedNPC.HairColor);
-                        }
-                        else
-                        {
-                            forwardedOR.HairColor.Clear();
-                        }
+                        forwardedOR.HairColor.SetTo(userSelectedNPC.HairColor);
 
-                        if (userSelectedNPC.HeadParts != null)
-                        {
-                            forwardedOR.HeadParts.Clear();
-                            if (userSelectedNPC.HeadParts != null)
-                            {
-                                forwardedOR.HeadParts.AddRange(userSelectedNPC.HeadParts);
-                            }
-                        }
-                        else
-                        {
-                            forwardedOR.HeadParts.Clear();
-                        }
-                        
-                        if (userSelectedNPC.HeadTexture != null )
-                        {
-                            forwardedOR.HeadTexture.Clear();
-                            if (userSelectedNPC.HeadTexture != null)
-                            {
-                                forwardedOR.HeadTexture.SetTo(userSelectedNPC.HeadTexture);
-                            }
-                        }
-                        else
-                        {
-                            forwardedOR.HeadTexture.Clear();
-                        }
+                        forwardedOR.HeadParts.Clear();
+                        forwardedOR.HeadParts.AddRange(userSelectedNPC.HeadParts);
+
+                        forwardedOR.HeadTexture.SetTo(userSelectedNPC.HeadTexture);
                         
                         forwardedOR.Height = userSelectedNPC.Height;
-                        
-                        if(forwardedOR.Race != null && userSelectedNPC.Race != null)
-                        {
-                            forwardedOR.Race.SetTo(userSelectedNPC.Race);
-                        }
-                        
-                        if (userSelectedNPC.SleepingOutfit != null && !settings.ForwardConflictWinnerOutifts)
+
+                        forwardedOR.Race.SetTo(userSelectedNPC.Race);
+
+                        if (!settings.ForwardConflictWinnerOutifts)
                         {
                             forwardedOR.SleepingOutfit.SetTo(userSelectedNPC.SleepingOutfit);
                         }
-                        
-                        if (userSelectedNPC.TextureLighting != null)
-                        {
-                            forwardedOR.TextureLighting = userSelectedNPC.TextureLighting;
-                        }
-                        else
-                        {
-                            forwardedOR.TextureLighting = null;
-                        }
-                        
-                        if (userSelectedNPC.TintLayers != null)
-                        {
-                            forwardedOR.TintLayers.Clear();
-                            if (userSelectedNPC.TintLayers != null)
-                            {
-                                forwardedOR.TintLayers.AddRange(userSelectedNPC.TintLayers.Select(a => a.DeepCopy()));
-                            }
-                        }
-                        else
-                        {
-                            forwardedOR.TintLayers.Clear();
-                        }
+
+                        forwardedOR.TextureLighting = userSelectedNPC.TextureLighting;
+
+                        forwardedOR.TintLayers.Clear();
+                        forwardedOR.TintLayers.AddRange(userSelectedNPC.TintLayers.Select(a => a.DeepCopy()));
                         
                         forwardedOR.Weight = userSelectedNPC.Weight;
-                        
-                        if (userSelectedNPC.WornArmor != null)
-                        {
-                            forwardedOR.WornArmor.Clear();
-                            if (userSelectedNPC.WornArmor != null)
-                            {
-                                forwardedOR.WornArmor.SetTo(userSelectedNPC.WornArmor);
-                            }
-                        }
-                        else
-                        {
-                            forwardedOR.WornArmor.Clear();
-                        }
+
+                        forwardedOR.WornArmor.SetTo(userSelectedNPC.WornArmor);
 
                         return forwardedOR;
                     }
