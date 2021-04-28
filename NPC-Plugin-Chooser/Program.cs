@@ -83,7 +83,7 @@ namespace NPCPluginChooser
                         Console.WriteLine("Top Loop: Looking for Evette");
                     }
 
-                    if (npcCO.Record.HairColor == null)
+                    if (npcCO.Record.HairColor.IsNull)
                     {
                         Console.WriteLine("Skipping NPC {0} {1} because no hair color", npcCO.Record.EditorID, npcCO.Record.FormKey.ToString());
 
