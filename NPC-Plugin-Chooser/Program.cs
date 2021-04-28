@@ -311,29 +311,34 @@ namespace NPCPluginChooser
             // skip if there are no overrides. Do this first to avoid having to do expensive BSA-enabled FaceGen check for large BSAs w/ few overrides such as Faalskar and LotD
             if (contexts.Count() == 1)
             {
+                Console.WriteLine("Debug: {0} has only one context", npcCO.Record.Name);
                 return;
             }
 
             // skip NPC if it has no modded facegen
             if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), settings.HandleBSAFiles_SettingsGen, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
             {
+                Console.WriteLine("Debug: { 0} has only no facegen", npcCO.Record.Name);
                 return;
             }
 
+            bool debug = false;
             foreach (var context in contexts)
             {
                 if (settings.BaseGamePlugins.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey) // if the current plugin is from the excluded list, or if it is the base plugin, skip
                 {
+                    Console.WriteLine("Debug: { 0} is skipped from {1} because the modkey is the source modkey", npcCO.Record.Name, context.ModKey.ToString());
                     continue;
                 }
 
-                if (!PluginDirectoryDict.ContainsKey(context.ModKey)) { continue; } // possible if source plugin is in the overwrite folder, in which case it should be ignored
+                if (!PluginDirectoryDict.ContainsKey(context.ModKey)) { Console.WriteLine("Debug: Plugin {0} skpped because it's not in the dictionary", context.ModKey.ToString()); continue; } // possible if source plugin is in the overwrite folder, in which case it should be ignored
 
                 string currentDataDir = PluginDirectoryDict[context.ModKey];
 
                 // check if NPC's facegen matches the winning facegen
                 if (checkFaceGenMatch(context, currentDataDir, settings.HandleBSAFiles_SettingsGen, state) == true)
                 {
+                    debug = true;
                     // get the relevant plugin settings object
                     var currentPPS = new PerPluginSettings();
                     bool foundCurrentPPS = false;
@@ -355,6 +360,11 @@ namespace NPCPluginChooser
 
                     currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
                     break;
+                }
+
+                if (debug == false)
+                {
+                    Console.WriteLine("Debug: {0}'s winning facegen could not be found.", npcCO.Record.Name);
                 }
             }
         }
