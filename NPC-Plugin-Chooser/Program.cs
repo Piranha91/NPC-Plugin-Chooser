@@ -307,7 +307,12 @@ namespace NPCPluginChooser
         public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, PatcherSettings settings, PatcherSettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey);
-            
+
+            if (npcCO.Record.EditorID == "EvetteSan")
+            {
+                Console.WriteLine("Trying to generate record for Evette");
+            }
+
             // skip if there are no overrides. Do this first to avoid having to do expensive BSA-enabled FaceGen check for large BSAs w/ few overrides such as Faalskar and LotD
             if (contexts.Count() == 1)
             {
@@ -322,9 +327,19 @@ namespace NPCPluginChooser
                 return;
             }
 
+            if (npcCO.Record.EditorID == "EvetteSan")
+            {
+                Console.WriteLine("Made it here");
+            }
+
             bool debug = false;
             foreach (var context in contexts)
             {
+                if (npcCO.Record.EditorID == "EvetteSan")
+                {
+                    Console.WriteLine("Looking at Evette's record in {0}", context.ModKey.ToString());
+                }
+
                 if (settings.BaseGamePlugins.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey) // if the current plugin is from the excluded list, or if it is the base plugin, skip
                 {
                     //Console.WriteLine("Debug: {0} is skipped from {1} because the modkey is the source modkey", npcCO.Record.Name, context.ModKey.ToString());
@@ -341,7 +356,7 @@ namespace NPCPluginChooser
                     debug = true;
                     if (npcCO.Record.EditorID == "EvetteSan")
                     {
-                        Console.WriteLine("Evette's ModKey is {0", context.ModKey.ToString());
+                        Console.WriteLine("Evette's ModKey is {0}", context.ModKey.ToString());
                     }
 
 
