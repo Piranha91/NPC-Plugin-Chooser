@@ -78,8 +78,18 @@ namespace NPCPluginChooser
                 int counter = 0;
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
+                    if (npcCO.Record.EditorID == "EvetteSan")
+                    {
+                        Console.WriteLine("Top Loop: Looking for Evette");
+                    }
+
                     if (npcCO.Record.FaceMorph == null)
                     {
+                        if (npcCO.Record.EditorID == "EvetteSan")
+                        {
+                            Console.WriteLine("Evette has no face morph");
+                        }
+
                         continue; // skip creatures
                     }
                     generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state);
