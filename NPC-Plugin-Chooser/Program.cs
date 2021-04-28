@@ -83,12 +83,9 @@ namespace NPCPluginChooser
                         Console.WriteLine("Top Loop: Looking for Evette");
                     }
 
-                    if (npcCO.Record.FaceMorph == null)
+                    if (npcCO.Record.TintLayers == null)
                     {
-                        if (npcCO.Record.EditorID == "EvetteSan")
-                        {
-                            Console.WriteLine("Evette has no face morph");
-                        }
+                        Console.WriteLine("Skipping NPC {0} because no tint layers", npcCO.Record.EditorID);
 
                         continue; // skip creatures
                     }
