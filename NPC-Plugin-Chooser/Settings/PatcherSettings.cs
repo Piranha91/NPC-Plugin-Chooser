@@ -45,8 +45,8 @@ namespace NPCPluginChooser.Settings
         public bool ForwardConflictWinnerData { get; set; } = true;
 
         [SynthesisOrder]
-        [SynthesisTooltip("If checked, outfits are considered as \"non-appearance-related data\" in the above setting.")]
-        public bool ForwardConflictWinnerOutifts { get; set; } = false;
+        [SynthesisTooltip("If checked, outfits are considered as \"non-appearance-related data\" in the above setting and will be forwarded from the winning override.")]
+        public bool ForwardConflictWinnerOutifts { get; set; } = true;
 
         [SynthesisOrder]
         [SynthesisSettingName("Handle BSA files during patching")]
