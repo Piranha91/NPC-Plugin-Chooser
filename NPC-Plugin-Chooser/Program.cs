@@ -327,7 +327,7 @@ namespace NPCPluginChooser
             {
                 if (settings.BaseGamePlugins.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey) // if the current plugin is from the excluded list, or if it is the base plugin, skip
                 {
-                    Console.WriteLine("Debug: { 0} is skipped from {1} because the modkey is the source modkey", npcCO.Record.Name, context.ModKey.ToString());
+                    Console.WriteLine("Debug: {0} is skipped from {1} because the modkey is the source modkey", npcCO.Record.Name, context.ModKey.ToString());
                     continue;
                 }
 
