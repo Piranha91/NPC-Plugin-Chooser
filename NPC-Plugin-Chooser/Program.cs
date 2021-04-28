@@ -318,7 +318,7 @@ namespace NPCPluginChooser
             // skip NPC if it has no modded facegen
             if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), settings.HandleBSAFiles_SettingsGen, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
             {
-                Console.WriteLine("Debug: { 0} has only no facegen", npcCO.Record.Name);
+                Console.WriteLine("Debug: {0} has only no facegen", npcCO.Record.Name);
                 return;
             }
 
