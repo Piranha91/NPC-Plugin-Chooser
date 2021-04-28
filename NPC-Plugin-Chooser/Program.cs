@@ -83,9 +83,9 @@ namespace NPCPluginChooser
                         Console.WriteLine("Top Loop: Looking for Evette");
                     }
 
-                    if (npcCO.Record.TintLayers == null || npcCO.Record.TintLayers.Count == 0)
+                    if (npcCO.Record.HairColor == null)
                     {
-                        Console.WriteLine("Skipping NPC {0} because no tint layers", npcCO.Record.EditorID);
+                        Console.WriteLine("Skipping NPC {0} {1} because no hair color", npcCO.Record.EditorID, npcCO.Record.FormKey.ToString());
 
                         continue; // skip creatures
                     }
