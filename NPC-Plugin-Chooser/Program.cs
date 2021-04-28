@@ -361,11 +361,10 @@ namespace NPCPluginChooser
                     currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
                     break;
                 }
-
-                if (debug == false)
-                {
-                    Console.WriteLine("Debug: {0}'s winning facegen could not be found.", npcCO.Record.Name);
-                }
+            }
+            if (debug == false)
+            {
+                Console.WriteLine("Debug: {0}'s winning facegen could not be found.", npcCO.Record.Name);
             }
         }
 
