@@ -78,10 +78,6 @@ namespace NPCPluginChooser
                 int counter = 0;
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
-                    if (npcCO.Record.FaceMorph == null)
-                    {
-                        continue; // skip creatures
-                    }
                     generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state);
                     counter++;
                     if (counter % 100 == 0)
