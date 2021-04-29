@@ -188,39 +188,9 @@ namespace NPCPluginChooser
                             forwardedOR.DefaultOutfit.SetTo(userSelectedNPC.DefaultOutfit);
                         }
 
-                        if (userSelectedNPC.FaceMorph != null)
-                        {
-                            if (forwardedOR.FaceMorph != null)
-                            {
-                                forwardedOR.FaceMorph.Clear();
-                            }
-                            else
-                            {
-                                forwardedOR.FaceMorph = new NpcFaceMorph();
-                            }
-                            forwardedOR.FaceMorph.DeepCopyIn(userSelectedNPC.FaceMorph);
-                        }
-                        else
-                        {
-                            forwardedOR.FaceMorph = null;
-                        }
-
-                        if (userSelectedNPC.FaceParts != null)
-                        {
-                            if (forwardedOR.FaceParts != null)
-                            {
-                                forwardedOR.FaceParts.Clear();
-                            }
-                            else
-                            {
-                                forwardedOR.FaceParts = new NpcFaceParts();
-                            }
-                            forwardedOR.FaceParts.DeepCopyIn(userSelectedNPC.FaceParts);
-                        }
-                        else
-                        {
-                            forwardedOR.FaceParts = null;
-                        }
+                        forwardedOR.FaceMorph = userSelectedNPC.FaceMorph?.DeepCopy();
+                        
+                        forwardedOR.FaceParts = userSelectedNPC.FaceParts?.DeepCopy();
 
                         forwardedOR.FarAwayModel.SetTo(userSelectedNPC.FarAwayModel);
 
