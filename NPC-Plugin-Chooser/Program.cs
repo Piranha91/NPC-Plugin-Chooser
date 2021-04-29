@@ -92,7 +92,7 @@ namespace NPCPluginChooser
                 int counter = 0;
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
-                    if (generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state));
+                    if (generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state))
                     {
                         counter++;
                         if (counter % 100 == 0)
