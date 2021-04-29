@@ -16,7 +16,7 @@ namespace NPCPluginChooser.Settings
     {
         [SynthesisOrder]
         [SynthesisTooltip("Simple: assumes that the NPC records and associated meshes and textures are conflict winners.\nDeep: Searches through conflict losers as well as winners to forward the correct records (requires MO2 path to be set).\nSettingsGen: Instead of forwarding NPC records, the program will scan your current winning NPC overrides and genrate a settings.json to use based on your current setup (requires MO2 path to be set).")]
-        public Mode Mode { get; set; } = Mode.Simple;
+        public Mode Mode { get; set; } = Mode.Deep;
 
         [SynthesisOrder]
         [SynthesisTooltip("All: a record will be generated for every NPC regardless of conflict status.\nRecordConflictsOnly: Records will only be generated for NPCs with non-vanilla appearance-related plugin data.\nFaceGenConflictsOnly: Records will only be generated for NPCs with non-vanilla FaceGen files.")]
