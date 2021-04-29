@@ -47,6 +47,16 @@ namespace NPCPluginChooser
             {
                 throw new Exception("Cannot find the Mod Organizer 2 Mods folder specified in settings: " + settings.MO2DataPath);
             }
+
+            if (settings.Mode == Mode.SettingsGen && settings.SettingsGenMode == SettingsGenMode.All && settings.GameDirPath == "")
+            {
+                throw new Exception("Game Path must be set for SettingsGen Mode \"All\".");
+            }
+
+            if (settings.GameDirPath != "" && !Directory.Exists(settings.GameDirPath))
+            {
+                throw new Exception("Cannot find the game folder specified in settings: " + settings.GameDirPath);
+            }
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
@@ -59,6 +69,10 @@ namespace NPCPluginChooser
 
             getWarningsToSuppress(settings, state);
             getPathstoIgnore(settings, state);
+            if (settings.Mode == Mode.SettingsGen)
+            {
+                getVanillaNPCsForSettingsGen(settings, state);
+            }
 
             if (settings.AssetOutputDirectory != "" && Directory.Exists(settings.AssetOutputDirectory) && settings.ClearAssetOutputDirectory && settings.Mode != Mode.SettingsGen)
             {
@@ -85,6 +99,8 @@ namespace NPCPluginChooser
                         Console.WriteLine("Processed {0} humanoid NPCs", counter++);
                     }
                 }
+
+                outputSettings.PluginsToForward = sortPPS(outputSettings.PluginsToForward, state);
 
                 // write output settings here
 
@@ -258,18 +274,16 @@ namespace NPCPluginChooser
         {
             var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey); // [0] is winning override. [Last] is source plugin
 
-            // skip NPC if it has no facegen
-            if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), true, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
+            bool proccessThisNPC = false;
+
+            switch (settings.SettingsGenMode)
             {
-                return;
+                case SettingsGenMode.All: proccessThisNPC = settings.settingsGen_VanillaNPCs.Contains(npcCO.Record.FormKey) || faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), true, state, out var unusedHere); break;
+                case SettingsGenMode.RecordConflictsOnly: proccessThisNPC = contexts.Count() > 1 || hasAppearanceRecordConflict(contexts.Last(), contexts.First()); break;
+                case SettingsGenMode.FaceGenConflictsOnly: proccessThisNPC = checkFaceGenMatch(contexts.Last(), settings.GameDirPath, true, state) == false; break;
             }
 
-            if (settings.SettingsGenMode == SettingsGenMode.RecordConflictsOnly && (contexts.Count() == 1 || hasAppearanceRecordConflict(contexts.Last(), contexts.First()) == false)) // skip if there are no overrides. Do this first to avoid having to do expensive BSA-enabled FaceGen check for large BSAs w/ few overrides such as Faalskar and LotD
-            {
-                return;
-            }
-
-            else if (settings.SettingsGenMode == SettingsGenMode.FaceGenConflictsOnly && checkFaceGenMatch(contexts.Last(), settings.GameDirPath, true, state) == true)
+            if (proccessThisNPC == false)
             {
                 return;
             }
@@ -471,15 +485,15 @@ namespace NPCPluginChooser
         public static void getWarningsToSuppress(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             string settingsPath = Path.Combine(state.ExtraSettingsDataPath, "Warnings To Suppress.json");
-            if (!File.Exists(settingsPath) && settings.SuppressKnownMissingFileWarnings)
+            if (!File.Exists(settingsPath))
             {
                 throw new Exception("Could not find the list of known missing files (expected at: " + settingsPath + ").");
             }
 
             try
             {
-                string filePath = File.ReadAllText(settingsPath);
-                var tmp = JsonConvert.DeserializeObject<List<suppressedWarnings>>(filePath);
+                string file = File.ReadAllText(settingsPath);
+                var tmp = JsonConvert.DeserializeObject<List<suppressedWarnings>>(file);
 
                 if (tmp == null)
                 {
@@ -505,6 +519,42 @@ namespace NPCPluginChooser
             catch
             {
                 throw new Exception("Failed to deserialize the list of suppressed file warnings at " + settingsPath + ". Please make sure you don't have an old version, and that you introduced JSON format errors if you edited it yourself.");
+            }
+        }
+
+        public static void getVanillaNPCsForSettingsGen(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            string settingsPath = Path.Combine(state.ExtraSettingsDataPath, "SettingsGen Vanilla NPCs.json");
+            if (!File.Exists(settingsPath))
+            {
+                throw new Exception("Could not find the list of vanilla NPCs with FaceGen (expected at: " + settingsPath + ").");
+            }
+
+            try
+            {
+                string file = File.ReadAllText(settingsPath);
+                var tmp = JsonConvert.DeserializeObject<HashSet<string>>(file);
+
+                if (tmp == null)
+                {
+                    throw new Exception("Could not deserialize list of vanilla NPCs with FaceGen to HashSet<string> (at: " + settingsPath + ").");
+                }
+                
+                foreach (string s in tmp)
+                {
+                    if (FormKey.TryFactory(s, out var FK))
+                    {
+                        settings.settingsGen_VanillaNPCs.Add(FK);
+                    }
+                    else
+                    {
+                        throw new Exception("Could not find a FormKey for expected vanilla NPC " + s);
+                    }
+                }
+            }
+            catch
+            {
+                throw new Exception("Error deserializing list of vanilla NPCs with FaceGen to HashSet<string> (at: " + settingsPath + ").");
             }
         }
 
@@ -996,6 +1046,23 @@ namespace NPCPluginChooser
             {
                 texturePaths.Add(Txst.GlowOrDetailMap);
             }
+        }
+
+        public static HashSet<PerPluginSettings> sortPPS(HashSet<PerPluginSettings> inputPPS, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            HashSet<PerPluginSettings> outputPPS = new HashSet<PerPluginSettings>();
+
+            foreach (var plugin in state.LoadOrder)
+            {
+                var matchedPPS = inputPPS.Where(p => p.Plugin == plugin.Key);
+                if (matchedPPS.Any())
+                {
+                    outputPPS.Add(matchedPPS.First());
+                    continue;
+                }
+            }
+
+            return outputPPS;
         }
     }
 }

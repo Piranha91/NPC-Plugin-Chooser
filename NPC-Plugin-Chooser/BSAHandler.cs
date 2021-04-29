@@ -31,14 +31,19 @@ namespace NPCPluginChooser
 
         public static void extractFileFromBSA(IArchiveFile file, string destPath)
         {
-            //try
-            //{
-                string? dirPath = Path.GetDirectoryName(destPath);
+            string? dirPath = Path.GetDirectoryName(destPath);
             if (dirPath != null)
             {
                 if (Directory.Exists(dirPath) == false)
                 {
-                    Directory.CreateDirectory(dirPath);
+                    try
+                    {
+                        Directory.CreateDirectory(dirPath);
+                    }
+                    catch
+                    {
+                        throw new Exception("Could not create directory at " + dirPath + ". Check path length and permissions.");
+                    }
                 }
                 try
                 {
@@ -56,11 +61,6 @@ namespace NPCPluginChooser
             {
                 throw new Exception("Could not create the output directory at " + dirPath);
             }
-            //}
-            //catch
-            //{
-            //    throw new Exception("Could not extract file from BSA: " + file.Path + " to directory " + destPath);
-            //}
         }
 
         public static bool TryGetFile(string subpath, IArchiveReader bsaReader, out IArchiveFile? file)
