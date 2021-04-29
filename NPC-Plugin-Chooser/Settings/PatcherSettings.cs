@@ -159,11 +159,42 @@ namespace NPCPluginChooser.Settings
         [SynthesisOrder]
         [SynthesisTooltip("If checked, patcher will look in .nif files for additional textures not references in the NPC's plugin. Safer to leave on to avoid missing texture, but slows down patching ~4-5x.")]
         public bool FindExtraTexturesInNifs { get; set; } = true;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("If checked, the patcher will add this plugin to merge.json so that it can be hidden with the Merge Plugins Hide MO2 plugin.")]
+        [SynthesisSettingName("Add to merge.json")]
+        public bool AddToMergeJSON { get; set; } = false;
     }
 
     public class suppressedWarnings
     {
         public string Plugin { get; set; } = "";
         public HashSet<string> Paths { get; set; } = new HashSet<string>();
+    }
+
+    public class megeJsonOutput
+    {
+        public string name { get; set; } = "NPC Plugin Chooser";
+        public string filename { get; set; } = "";
+        public string method { get; set; } = "clamp";
+        public bool handleFaceData { get; set; } = true;
+        public bool handleVoiceData { get; set; } = false;
+        public bool handleBillboards { get; set; } = false;
+        public bool handleScriptFragments { get; set; } = false;
+        public bool handleStringFiles { get; set; } = false;
+        public bool handleTranslations { get; set; } = false;
+        public bool handleIniFiles { get; set; } = false;
+        public bool copyGeneralAssets { get; set; } = false;
+        public List<string> loadOrder { get; set; } = new List<string>();
+        public string dateBuilt { get; set; } = "";
+        public HashSet<mergeJsonOutputPluginEntry> plugins { get; set; } = new HashSet<mergeJsonOutputPluginEntry>();
+
+
+    }
+    public class mergeJsonOutputPluginEntry
+    {
+        public string filename { get; set; } = "";
+        public string hash { get; set; } = "";
+        public string dataFolder { get; set; } = "";
     }
 }

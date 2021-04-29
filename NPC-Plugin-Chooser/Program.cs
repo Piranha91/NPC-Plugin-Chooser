@@ -134,6 +134,8 @@ namespace NPCPluginChooser
 
             else
             {
+                HashSet<mergeJsonOutputPluginEntry> mergeJSONlist = new HashSet<mergeJsonOutputPluginEntry>();
+                
                 foreach (var PPS in settings.PluginsToForward)
                 {
                     Console.WriteLine("Processing {0}", PPS.Plugin.ToString());
@@ -177,6 +179,20 @@ namespace NPCPluginChooser
                         Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
                         state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
                     }
+
+                    if (PPS.AddToMergeJSON && settings.BaseGamePlugins.Contains(PPS.Plugin) == false)
+                    {
+                        mergeJsonOutputPluginEntry j = new mergeJsonOutputPluginEntry();
+                        j.filename = PPS.Plugin.ToString();
+                        j.dataFolder = currentDataDir;
+                        j.hash = CreateMD5(Path.Combine(currentDataDir, PPS.Plugin.ToString()));
+                        mergeJSONlist.Add(j);
+                    }
+                }
+
+                if (mergeJSONlist.Any())
+                {
+                    createJsonMergeFile(mergeJSONlist, settings, state);
                 }
             }
         }      
@@ -1063,6 +1079,67 @@ namespace NPCPluginChooser
             }
 
             return outputPPS;
+        }
+
+        //https://stackoverflow.com/questions/11454004/calculate-a-md5-hash-from-a-string
+        public static string CreateMD5(string filename)
+        {
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                using (var stream = File.OpenRead(filename))
+                {
+                    var hash = md5.ComputeHash(stream).ToString();
+                    if (hash == null)
+                    {
+                        Console.WriteLine("Could not compute hash of file {0}", filename);
+                        return "";
+                    }
+                    else
+                    {
+                        return hash;
+                    }
+                }
+            }
+        }
+
+        public static void createJsonMergeFile(HashSet<mergeJsonOutputPluginEntry> plugins, PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            megeJsonOutput output = new megeJsonOutput();
+
+            output.filename = state.PatchMod.ModKey.ToString(); // check to make sure this works to distinguish Synth vs. Standalone
+
+            foreach (var plugin in state.LoadOrder)
+            {
+                output.loadOrder.Add(plugin.Key.FileName);
+            }
+
+            output.dateBuilt = DateTime.UtcNow.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+
+            output.plugins = plugins;
+
+            string writeDir = Path.Combine(settings.AssetOutputDirectory, "merge");
+            if (Directory.Exists(writeDir) == false)
+            {
+                try
+                {
+                    Directory.CreateDirectory(writeDir);
+                }
+                catch
+                {
+                    throw new Exception("Could not create a directory for the output merge at " + writeDir);
+                }
+            }
+
+            string writePath = Path.Combine(writeDir, "merge.json");
+
+            try
+            {
+                File.WriteAllText(writePath, JsonConvert.SerializeObject(output));
+            }
+            catch
+            {
+                throw new Exception("Could not write the merge.json to " + writePath);
+            }
         }
     }
 }
