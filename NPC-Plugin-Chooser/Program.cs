@@ -92,11 +92,13 @@ namespace NPCPluginChooser
                 int counter = 0;
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
-                    generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state);
-                    counter++;
-                    if (counter % 100 == 0)
+                    if (generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state));
                     {
-                        Console.WriteLine("Processed {0} humanoid NPCs", counter++);
+                        counter++;
+                        if (counter % 100 == 0)
+                        {
+                            Console.WriteLine("Processed {0} humanoid NPCs", counter++);
+                        }
                     }
                 }
 
@@ -286,61 +288,75 @@ namespace NPCPluginChooser
                 }
             }
         }
-        public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, PatcherSettings settings, PatcherSettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static bool generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, PatcherSettings settings, PatcherSettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey); // [0] is winning override. [Last] is source plugin
 
             bool proccessThisNPC = false;
 
+            var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
+            var winningPlugin = new ModKey();
+
+            var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, state, out bool hasFaceGen, out var winningBSAPlugin);
+            if (hasFaceGen == false)
+            {
+                return false;
+            }
+            else if (winningBSAPlugin != null)
+            {
+                winningPlugin = winningBSAPlugin.Value;
+            }
+
             switch (settings.SettingsGenMode)
             {
-                case SettingsGenMode.All: proccessThisNPC = settings.settingsGen_VanillaNPCs.Contains(npcCO.Record.FormKey) || faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), true, state, out var unusedHere); break;
+                case SettingsGenMode.All: break;
                 case SettingsGenMode.RecordConflictsOnly: proccessThisNPC = contexts.Count() > 1 || hasAppearanceRecordConflict(contexts.Last(), contexts.First()); break;
-                case SettingsGenMode.FaceGenConflictsOnly: proccessThisNPC = checkFaceGenMatch(contexts.Last(), settings.GameDirPath, true, state) == false; break;
+                case SettingsGenMode.FaceGenConflictsOnly: 
+                    //proccessThisNPC = checkFaceGenMatch(contexts.Last(), contexts, settings.GameDirPath, state) == false; 
+                    break;
             }
 
             if (proccessThisNPC == false)
             {
-                return;
+                return false;
             }
 
-            foreach (var context in contexts)
+            if (winningPlugin.IsNull) // if winning FaceGen is not from BSA (in which case its source mod was already found), figure out which mod the loose files came from
             {
-                if (settings.SettingsGenMode != SettingsGenMode.All && (settings.BaseGamePlugins.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey)) // if the current plugin is from the excluded list, or if it is the base plugin, skip
-                {
-                    continue;
-                }
-
-                if (!PluginDirectoryDict.ContainsKey(context.ModKey)) { continue; } // possible if source plugin is in the overwrite folder, in which case it should be ignored
-
-                string currentDataDir = PluginDirectoryDict[context.ModKey];
-
-                // check if NPC's facegen matches the winning facegen
-                if (checkFaceGenMatch(context, currentDataDir, settings.HandleBSAFiles_SettingsGen, state) == true)
-                {
-                    // get the relevant plugin settings object
-                    var currentPPS = new PerPluginSettings();
-                    bool foundCurrentPPS = false;
-                    foreach (var PPS in outputSettings.PluginsToForward)
-                    {
-                        if (PPS.Plugin == context.ModKey)
-                        {
-                            currentPPS = PPS;
-                            foundCurrentPPS = true;
-                            break;
-                        }
-                    }
-                    if (foundCurrentPPS == false)
-                    {
-                        currentPPS.Plugin = context.ModKey;
-                        currentPPS.InvertSelection = false;
-                        outputSettings.PluginsToForward.Add(currentPPS);
-                    }
-
-                    currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
-                    break;
-                }
+                winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
             }
+
+            // if a winning plugin was never found, warn user and continue
+            if (winningPlugin.IsNull)
+            {
+                string NPCdispStr = npcCO.Record.Name + " | " + npcCO.Record.EditorID + " | " + npcCO.Record.FormKey.ToString();
+                Console.WriteLine("Could not find a FaceGen match for NPC {0}. Continuing to next NPC.", NPCdispStr);
+                return false;
+            }
+            else
+            {
+                var currentPPS = new PerPluginSettings();
+                bool foundCurrentPPS = false;
+                foreach (var PPS in outputSettings.PluginsToForward)
+                {
+                    if (PPS.Plugin == winningPlugin)
+                    {
+                        currentPPS = PPS;
+                        foundCurrentPPS = true;
+                        break;
+                    }
+                }
+                if (foundCurrentPPS == false)
+                {
+                    currentPPS.Plugin = winningPlugin;
+                    currentPPS.InvertSelection = false;
+                    outputSettings.PluginsToForward.Add(currentPPS);
+                }
+
+                currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
+            }
+
+            return true;
         }
 
         public static bool hasAppearanceRecordConflict(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> conflictWinnner, IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> baseNPC)
@@ -457,24 +473,185 @@ namespace NPCPluginChooser
             return true;
         }
 
-        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, string currentModDir, bool handleBSAFiles, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner)
         {
-            var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
+            success = true;
+            BSAwinner = null; // if the winning FaceGen is in a BSA, no need for the calling function to waste time looking for it - just report the calling ModKey here
+
+            ModKey NifBSAWinner = new ModKey();
+            ModKey DdsBSAWinner = new ModKey();
+
+            MemoryStream NifStream = new MemoryStream();
+            MemoryStream DdsStream = new MemoryStream();
+
+            // check for loose file in data path first.
+
+            string winnerMeshPath = Path.Combine(FaceGenSubPaths.Item1, "meshes", FaceGenSubPaths.Item1);
+            string winnerTexPath = Path.Combine(state.DataFolderPath, "textures", FaceGenSubPaths.Item2);
+
+            bool meshFound = false;
+            bool texFound = false;
+
+            if (File.Exists(winnerMeshPath))
+            {
+                using (var mFile = File.OpenRead(winnerMeshPath))
+                {
+                    mFile.CopyTo(NifStream);
+                    meshFound = true;
+                }
+            }
+
+            if (File.Exists(winnerTexPath))
+            {
+                using (var tFile = File.OpenRead(winnerTexPath))
+                {
+                    tFile.CopyTo(DdsStream);
+                    texFound = true;
+                }
+            }
+
+            // if files aren't loose, try in bsa
+            if (meshFound == false || texFound == false)
+            {
+                foreach (var context in allNPCcontexts) // winning context is first, root is last
+                {
+                    var currentContextReaders = BSAHandler.openBSAArchiveReaders(PluginDirectoryDict[context.ModKey], context.ModKey);
+
+                    if (meshFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item1, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
+                    {
+                        archiveMeshFile.CopyDataTo(NifStream);
+                        meshFound = true;
+                        NifBSAWinner = context.ModKey;
+                        break;
+                    }
+
+                    if (texFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item2, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
+                    {
+                        archiveTexFile.CopyDataTo(DdsStream);
+                        texFound = true;
+                        DdsBSAWinner = context.ModKey;
+                        break;
+                    }
+                }
+
+                if (!(NifBSAWinner.IsNull && DdsBSAWinner.IsNull) && NifBSAWinner != DdsBSAWinner)
+                {
+                    throw new Exception("The winning FaceGen nif and the winning FaceGen dds belonged to BSA archives for different plugins. This is unsupported.");
+                }
+                else
+                {
+                    BSAwinner = NifBSAWinner;
+                }
+            }
+
+            if (meshFound == false || texFound == false)
+            {
+                success = false;
+            }
+
+            NifStream.Dispose();
+            DdsStream.Dispose();
+
+            return (NifStream, DdsStream);
+        }
+
+        public static ModKey getLooseFaceGenMatch(IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (MemoryStream, MemoryStream) winnerStreams, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            ModKey winner = new ModKey();
+
+            MemoryStream currentMeshStream = new MemoryStream();
+            MemoryStream currentTexStream = new MemoryStream();
+
+            foreach (var context in allNPCcontexts) // winning context is first, root is last
+            {
+                bool meshMatched = false;
+                bool texMatched = false;
+
+                string modMeshPath = Path.Combine(PluginDirectoryDict[context.ModKey], "meshes", FaceGenSubPaths.Item1);
+                string modTexPath = Path.Combine(PluginDirectoryDict[context.ModKey], "textures", FaceGenSubPaths.Item2);
+
+                if (File.Exists(modMeshPath))
+                {
+                    using (var mFile = File.OpenRead(modMeshPath))
+                    {
+                        mFile.CopyTo(currentMeshStream);
+                        if (CompareMemoryStreams(currentMeshStream, winnerStreams.Item1))
+                        {
+                            meshMatched = true;
+                        }
+                    }
+                }
+
+                if (File.Exists(modTexPath))
+                {
+                    using (var tFile = File.OpenRead(modTexPath))
+                    {
+                        tFile.CopyTo(currentTexStream);
+                        if (CompareMemoryStreams(currentTexStream, winnerStreams.Item2))
+                        {
+                            texMatched = true;
+                        }
+                    }
+                }
+
+                if (meshMatched && texMatched)
+                {
+                    winner = context.ModKey;
+                }
+            }
+
+            currentMeshStream.Dispose();
+            currentTexStream.Dispose();
+
+            return winner;
+        }
+
+        //https://stackoverflow.com/questions/2978727/most-efficient-way-to-compare-a-memorystream-to-a-file-c-sharp-net/9346745
+        public static bool CompareMemoryStreams(MemoryStream ms1, MemoryStream ms2)
+        {
+            if (ms1.Length != ms2.Length)
+                return false;
+            ms1.Position = 0;
+            ms2.Position = 0;
+
+            var msArray1 = ms1.ToArray();
+            var msArray2 = ms2.ToArray();
+
+            return msArray1.SequenceEqual(msArray2);
+        }
+
+        /*
+        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> currentNPCcontext, IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, string currentModDir, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            var FaceGenSubPaths = getFaceGenSubPathStrings(currentNPCcontext.Record.FormKey);
 
             string modMeshPath = Path.Combine(currentModDir, "meshes", FaceGenSubPaths.Item1);
 
-            HashSet<IArchiveReader> readers = new HashSet<IArchiveReader>();
-            if (handleBSAFiles)
-            {
-                readers = BSAHandler.openBSAArchiveReaders(currentModDir, npcCO.ModKey);
-            }
+            MemoryStream currentStream = new MemoryStream();
+            FileStream winnerStream;
 
-            if (File.Exists(modMeshPath) == false && (handleBSAFiles && BSAHandler.HaveFile(modMeshPath, readers)) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            HashSet<IArchiveReader> readers_currentMod = new HashSet<IArchiveReader>();
+
+            readers_currentMod = BSAHandler.openBSAArchiveReaders(currentModDir, currentNPCcontext.ModKey);
+
+            // get current mod mesh
+            if (File.Exists(modMeshPath))
+            {
+                var mFile = File.Open(modMeshPath, FileMode.Open);
+                mFile.CopyTo(currentStream);
+            }
+            else if (BSAHandler.HaveFile(modMeshPath, readers_currentMod, out var archiveMeshFile) && archiveMeshFile != null)
+            {
+                archiveMeshFile.CopyDataTo(currentStream);
+            }
+            else
             {
                 return false;
             }
 
+
             string winnerMeshPath = Path.Combine(state.DataFolderPath, "meshes", FaceGenSubPaths.Item1); 
+
 
             if (FileComparison.FilesAreEqual(modMeshPath, winnerMeshPath) == false) 
             {
@@ -483,7 +660,7 @@ namespace NPCPluginChooser
 
             string modTexPath = Path.Combine(currentModDir, "textures", FaceGenSubPaths.Item2); 
             
-            if (File.Exists(modTexPath) == false && (handleBSAFiles && BSAHandler.HaveFile(modTexPath, readers)) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            if (File.Exists(modTexPath) == false && BSAHandler.HaveFile(modTexPath, readers_currentMod, out var archiveTexFile) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
             {
                 return false;
             }
@@ -497,6 +674,8 @@ namespace NPCPluginChooser
 
             return true;
         }
+        */
+
 
         public static void getWarningsToSuppress(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {

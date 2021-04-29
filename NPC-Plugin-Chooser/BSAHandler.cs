@@ -78,16 +78,17 @@ namespace NPCPluginChooser
             }
         }
 
-        public static bool HaveFile(string subpath, HashSet<IArchiveReader> bsaReaders)
+        public static bool HaveFile(string subpath, HashSet<IArchiveReader> bsaReaders, out IArchiveFile? archiveFile)
         {
             foreach (var reader in bsaReaders)
             {
-                if (TryGetFile(subpath, reader, out var Unused))
+                if (TryGetFile(subpath, reader, out archiveFile))
                 {
                     return true;
                 }
             }
 
+            archiveFile = null;
             return false;
         }
     }
