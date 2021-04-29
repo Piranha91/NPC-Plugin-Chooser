@@ -34,19 +34,28 @@ namespace NPCPluginChooser
             //try
             //{
                 string? dirPath = Path.GetDirectoryName(destPath);
-                if (dirPath != null)
+            if (dirPath != null)
+            {
+                if (Directory.Exists(dirPath) == false)
                 {
-                    if (Directory.Exists(dirPath) == false)
-                    {
-                        Directory.CreateDirectory(dirPath);
-                    }
+                    Directory.CreateDirectory(dirPath);
+                }
+                try
+                {
                     var fileStream = File.Create(destPath);
                     file.CopyDataTo(fileStream);
                 }
-                else
+                catch
                 {
-                    throw new Exception("Could not create the output directory at " + dirPath);
+                    Console.WriteLine("==========================================================================================================");
+                    Console.WriteLine("Could not extract file from BSA: " + file.Path + " to " + destPath + ". Check path length and permissions.");
+                    Console.WriteLine("==========================================================================================================");
                 }
+            }
+            else
+            {
+                throw new Exception("Could not create the output directory at " + dirPath);
+            }
             //}
             //catch
             //{
