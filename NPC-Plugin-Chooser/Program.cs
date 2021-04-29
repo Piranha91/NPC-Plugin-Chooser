@@ -286,16 +286,20 @@ namespace NPCPluginChooser
         }
         public static void generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, PatcherSettings settings, PatcherSettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey);
-            
-            if (settings.SettingsGenMode == SettingsGenMode.ConflictsOnly && contexts.Count() == 1) // skip if there are no overrides. Do this first to avoid having to do expensive BSA-enabled FaceGen check for large BSAs w/ few overrides such as Faalskar and LotD
+            var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey); // [0] is winning override. [Last] is source plugin
+
+            // skip NPC if it has no facegen
+            if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), true, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
             {
                 return;
             }
 
-            // skip NPC if it has no facegen
-            bool handleBSA = (settings.SettingsGenMode == SettingsGenMode.All) || settings.HandleBSAFiles_SettingsGen; // BSAs need to be read for SettingsGenMode.All so that the vanilla game facegen can be processed
-            if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), handleBSA, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
+            if (settings.SettingsGenMode == SettingsGenMode.RecordConflictsOnly && (contexts.Count() == 1 || hasAppearanceRecordConflict(contexts.Last(), contexts.First()) == false)) // skip if there are no overrides. Do this first to avoid having to do expensive BSA-enabled FaceGen check for large BSAs w/ few overrides such as Faalskar and LotD
+            {
+                return;
+            }
+
+            else if (settings.SettingsGenMode == SettingsGenMode.FaceGenConflictsOnly && checkFaceGenMatch(contexts.Last(), settings.GameDirPath, true, state) == true)
             {
                 return;
             }
@@ -337,6 +341,25 @@ namespace NPCPluginChooser
                     break;
                 }
             }
+        }
+
+        public static bool hasAppearanceRecordConflict(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> conflictWinnner, IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> baseNPC)
+        {
+            var cw = conflictWinnner.Record;
+            var bn = baseNPC.Record;
+
+            if ((cw.FaceMorph != null && bn.FaceMorph == null) || (cw.FaceMorph == null && bn.FaceMorph != null) || (cw.FaceMorph != null && !cw.FaceMorph.Equals(baseNPC.Record.FaceMorph))) { return true; }
+            if ((cw.FaceParts != null && bn.FaceParts == null) || (cw.FaceParts == null && bn.FaceParts != null) || (cw.FaceParts != null && !cw.FaceParts.Equals(baseNPC.Record.FaceParts))) { return true; }
+            if (!cw.FarAwayModel.Equals(bn.FarAwayModel)) { return true; }
+            if (!cw.HairColor.Equals(bn.HairColor)) { return true; }
+            if (!cw.HeadParts.Equals(bn.HeadParts)) { return true; }
+            if (!cw.HeadTexture.Equals(bn.HeadTexture)) { return true; }
+            if (!cw.Race.Equals(bn.Race)) { return true; }
+            if (!cw.TextureLighting.Equals(bn.TextureLighting)) { return true; }
+            if (!cw.TintLayers.Equals(bn.TintLayers)) { return true; }
+            if (!cw.WornArmor.Equals(bn.WornArmor)) { return true; }
+
+            return false;
         }
 
         public static bool faceGenExists(FormKey NPCFormKey, ModKey currentModKey, string rootPath, HashSet<string> extraDataPaths, bool handleBSAFiles, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out (IArchiveFile?, IArchiveFile?) BSAFiles)
