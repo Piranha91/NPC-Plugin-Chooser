@@ -288,21 +288,21 @@ namespace NPCPluginChooser
         {
             var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey);
             
-            // skip if there are no overrides. Do this first to avoid having to do expensive BSA-enabled FaceGen check for large BSAs w/ few overrides such as Faalskar and LotD
-            if (contexts.Count() == 1)
+            if (settings.SettingsGenMode == SettingsGenMode.ConflictsOnly && contexts.Count() == 1) // skip if there are no overrides. Do this first to avoid having to do expensive BSA-enabled FaceGen check for large BSAs w/ few overrides such as Faalskar and LotD
             {
                 return;
             }
 
-            // skip NPC if it has no modded facegen
-            if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), settings.HandleBSAFiles_SettingsGen, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
+            // skip NPC if it has no facegen
+            bool handleBSA = (settings.SettingsGenMode == SettingsGenMode.All) || settings.HandleBSAFiles_SettingsGen; // BSAs need to be read for SettingsGenMode.All so that the vanilla game facegen can be processed
+            if (faceGenExists(npcCO.Record.FormKey, npcCO.ModKey, state.DataFolderPath, new HashSet<string>(), handleBSA, state, out var inBSA) == false) // npcCo.ModKey is only used to open BSA files - make sure this corresponds to the ModKey of the winning override.
             {
                 return;
             }
 
             foreach (var context in contexts)
             {
-                if (settings.BaseGamePlugins.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey) // if the current plugin is from the excluded list, or if it is the base plugin, skip
+                if (settings.SettingsGenMode != SettingsGenMode.All && (settings.BaseGamePlugins.Contains(context.ModKey) || context.ModKey == npcCO.Record.FormKey.ModKey)) // if the current plugin is from the excluded list, or if it is the base plugin, skip
                 {
                     continue;
                 }
