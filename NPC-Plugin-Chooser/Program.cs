@@ -522,6 +522,8 @@ namespace NPCPluginChooser
             // if files aren't loose, try in bsa
             if (meshFound == false || texFound == false)
             {
+                string BSAmeshPath = Path.Combine("meshes", FaceGenSubPaths.Item1);
+                string BSAtexPath = Path.Combine("textures", FaceGenSubPaths.Item2);
                 foreach (var context in allNPCcontexts) // winning context is first, root is last
                 {
                     if (state.LinkCache.TryResolve<IRaceGetter>(context.Record.Race.FormKey, out var currentRaceGetter) && !currentRaceGetter.Flags.HasFlag(Race.Flag.FaceGenHead))
@@ -535,8 +537,12 @@ namespace NPCPluginChooser
                     }
 
                     var currentContextReaders = BSAHandler.openBSAArchiveReaders(PluginDirectoryDict[context.ModKey], context.ModKey);
+                    if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran")
+                    {
+                        Console.WriteLine("Have {0} open readers for Melaran", currentContextReaders.Count);
+                    }
 
-                    if (meshFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item1, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
+                    if (meshFound == false && BSAHandler.HaveFile(BSAmeshPath, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
                     {
                         archiveMeshFile.CopyDataTo(NifStream);
                         meshFound = true;
@@ -544,7 +550,7 @@ namespace NPCPluginChooser
                         if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran") { Console.WriteLine("Found Melaran mesh"); }
                     }
 
-                    if (texFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item2, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
+                    if (texFound == false && BSAHandler.HaveFile(BSAtexPath, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
                     {
                         archiveTexFile.CopyDataTo(DdsStream);
                         texFound = true;
