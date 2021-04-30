@@ -332,6 +332,9 @@ namespace NPCPluginChooser
                 winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
             }
 
+            winnerFaceGenStreams.Item1.Dispose();
+            winnerFaceGenStreams.Item2.Dispose();
+
             // if a winning plugin was never found, warn user and continue
             if (winningPlugin.IsNull)
             {
@@ -565,9 +568,6 @@ namespace NPCPluginChooser
                 success = false;
                 Console.WriteLine("BSA winner NOT found");
             }
-
-            NifStream.Dispose();
-            DdsStream.Dispose();
 
             return (NifStream, DdsStream);
         }
