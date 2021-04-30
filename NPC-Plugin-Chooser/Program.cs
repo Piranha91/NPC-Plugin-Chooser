@@ -1280,7 +1280,7 @@ namespace NPCPluginChooser
 
             try
             {
-                File.WriteAllText(writePath, JsonConvert.SerializeObject(output));
+                File.WriteAllText(writePath, JsonConvert.SerializeObject(output, Formatting.Indented));
             }
             catch
             {
