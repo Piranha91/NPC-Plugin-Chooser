@@ -517,6 +517,11 @@ namespace NPCPluginChooser
             {
                 foreach (var context in allNPCcontexts) // winning context is first, root is last
                 {
+                    if (state.LinkCache.TryResolve<IRaceGetter>(context.Record.Race.FormKey, out var currentRaceGetter) && !currentRaceGetter.Flags.HasFlag(Race.Flag.FaceGenHead))
+                    {
+                        continue;
+                    }
+
                     var currentContextReaders = BSAHandler.openBSAArchiveReaders(PluginDirectoryDict[context.ModKey], context.ModKey);
 
                     if (meshFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item1, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
