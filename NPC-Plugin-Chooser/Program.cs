@@ -1230,6 +1230,10 @@ namespace NPCPluginChooser
         //https://stackoverflow.com/questions/11454004/calculate-a-md5-hash-from-a-string
         public static string CreateMD5(string filename)
         {
+            if (File.Exists(filename) == false)
+            {
+                Console.WriteLine("Could not open file to create hash: {0}", filename);
+            }
             using (var md5 = System.Security.Cryptography.MD5.Create())
             {
                 using (var stream = File.OpenRead(filename))
