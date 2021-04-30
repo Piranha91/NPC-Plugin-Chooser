@@ -92,6 +92,7 @@ namespace NPCPluginChooser
                 int counter = 0;
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
+                    if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran A"); }
                     if (generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state))
                     {
                         counter++;
@@ -301,10 +302,12 @@ namespace NPCPluginChooser
             var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, state, out bool hasFaceGen, out var winningBSAPlugin);
             if (hasFaceGen == false)
             {
+                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran B"); }
                 return false;
             }
             else if (winningBSAPlugin != null)
             {
+                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran C"); }
                 winningPlugin = winningBSAPlugin.Value;
             }
 
@@ -319,12 +322,14 @@ namespace NPCPluginChooser
 
             if (proccessThisNPC == false)
             {
+                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran D"); }
                 return false;
             }
 
             if (winningPlugin.IsNull) // if winning FaceGen is not from BSA (in which case its source mod was already found), figure out which mod the loose files came from
             {
                 winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
+                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran E"); }
             }
 
             winnerFaceGenStreams.Item1.Dispose();
@@ -333,6 +338,7 @@ namespace NPCPluginChooser
             // if a winning plugin was never found, warn user and continue
             if (winningPlugin.IsNull)
             {
+                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran F"); }
                 return false;
             }
             else
@@ -355,6 +361,7 @@ namespace NPCPluginChooser
                     outputSettings.PluginsToForward.Add(currentPPS);
                 }
 
+                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran G"); }
                 currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
             }
 
