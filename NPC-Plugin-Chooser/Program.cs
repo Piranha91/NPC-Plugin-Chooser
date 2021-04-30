@@ -92,6 +92,7 @@ namespace NPCPluginChooser
                 int counter = 0;
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
+                    Console.WriteLine("Current NPC: {0}", npcCO.Record.Name);
                     if (generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state))
                     {
                         counter++;
@@ -297,14 +298,18 @@ namespace NPCPluginChooser
             var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
             var winningPlugin = new ModKey();
 
+            Console.WriteLine("Getting winner facegen streams");
+
             var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, state, out bool hasFaceGen, out var winningBSAPlugin);
             if (hasFaceGen == false)
             {
+                Console.WriteLine("No FaceGen");
                 return false;
             }
             else if (winningBSAPlugin != null)
             {
                 winningPlugin = winningBSAPlugin.Value;
+                Console.WriteLine("Winner BSA: {0}", winningPlugin.ToString());
             }
 
             switch (settings.SettingsGenMode)
@@ -323,6 +328,7 @@ namespace NPCPluginChooser
 
             if (winningPlugin.IsNull) // if winning FaceGen is not from BSA (in which case its source mod was already found), figure out which mod the loose files came from
             {
+                Console.WriteLine("Looking for loose FaceGen match");
                 winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
             }
 
@@ -335,6 +341,7 @@ namespace NPCPluginChooser
             }
             else
             {
+                Console.WriteLine("Adding found NPC");
                 var currentPPS = new PerPluginSettings();
                 bool foundCurrentPPS = false;
                 foreach (var PPS in outputSettings.PluginsToForward)
@@ -343,11 +350,13 @@ namespace NPCPluginChooser
                     {
                         currentPPS = PPS;
                         foundCurrentPPS = true;
+                        Console.WriteLine("Adding NPC existing plugin entry: {0}", currentPPS.Plugin.ToString());
                         break;
                     }
                 }
                 if (foundCurrentPPS == false)
                 {
+                    Console.WriteLine("Adding new plugin entry for plugin: {0}", currentPPS.Plugin.ToString());
                     currentPPS.Plugin = winningPlugin;
                     currentPPS.InvertSelection = false;
                     outputSettings.PluginsToForward.Add(currentPPS);
@@ -510,6 +519,8 @@ namespace NPCPluginChooser
                 }
             }
 
+            Console.WriteLine("Loose: {0}", meshFound && texFound);
+
             // if files aren't loose, try in bsa
             if (meshFound == false || texFound == false)
             {
@@ -541,12 +552,14 @@ namespace NPCPluginChooser
                 else
                 {
                     BSAwinner = NifBSAWinner;
+                    Console.WriteLine("BSA winner found");
                 }
             }
 
             if (meshFound == false || texFound == false)
             {
                 success = false;
+                Console.WriteLine("BSA winner NOT found");
             }
 
             NifStream.Dispose();
@@ -578,6 +591,7 @@ namespace NPCPluginChooser
                         if (CompareMemoryStreams(currentMeshStream, winnerStreams.Item1))
                         {
                             meshMatched = true;
+                            Console.WriteLine("Matched loose mesh");
                         }
                     }
                 }
@@ -590,6 +604,7 @@ namespace NPCPluginChooser
                         if (CompareMemoryStreams(currentTexStream, winnerStreams.Item2))
                         {
                             texMatched = true;
+                            Console.WriteLine("Matched loose tex");
                         }
                     }
                 }
@@ -597,6 +612,7 @@ namespace NPCPluginChooser
                 if (meshMatched && texMatched)
                 {
                     winner = context.ModKey;
+                    Console.WriteLine("Found loose files winner: {0}", winner.ToString());
                     break;
                 }
             }
