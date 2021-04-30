@@ -529,6 +529,11 @@ namespace NPCPluginChooser
                         continue;
                     }
 
+                    if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran") 
+                    { 
+                        Console.WriteLine("Melaran Looking for Melaran in {0}", context.ModKey.ToString()); 
+                    }
+
                     var currentContextReaders = BSAHandler.openBSAArchiveReaders(PluginDirectoryDict[context.ModKey], context.ModKey);
 
                     if (meshFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item1, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
@@ -536,6 +541,7 @@ namespace NPCPluginChooser
                         archiveMeshFile.CopyDataTo(NifStream);
                         meshFound = true;
                         NifBSAWinner = context.ModKey;
+                        if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran") { Console.WriteLine("Found Melaran mesh"); }
                     }
 
                     if (texFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item2, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
@@ -543,6 +549,7 @@ namespace NPCPluginChooser
                         archiveTexFile.CopyDataTo(DdsStream);
                         texFound = true;
                         DdsBSAWinner = context.ModKey;
+                        if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran") { Console.WriteLine("Found Melaran tex"); }
                     }
 
                     if (meshFound && texFound) 
