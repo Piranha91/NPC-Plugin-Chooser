@@ -20,7 +20,7 @@ namespace NPCPluginChooser.Settings
 
         [SynthesisOrder]
         [SynthesisTooltip("All: a record will be generated for every NPC regardless of conflict status.\nRecordConflictsOnly: Records will only be generated for NPCs with non-vanilla appearance-related plugin data.\nFaceGenConflictsOnly: Records will only be generated for NPCs with non-vanilla FaceGen files.")]
-        public SettingsGenMode SettingsGenMode { get; set; } = SettingsGenMode.All;
+        public SettingsGenMode SettingsGenMode { get; set; } = SettingsGenMode.RecordConflictsOnly;
 
         [SynthesisOrder]
         [SynthesisSettingName("Mod Organizer 2\\mods Path")]
@@ -119,8 +119,7 @@ namespace NPCPluginChooser.Settings
     public enum SettingsGenMode
     {
         All,
-        RecordConflictsOnly,
-        FaceGenConflictsOnly
+        RecordConflictsOnly
     }
 
     public class PerPluginSettings
