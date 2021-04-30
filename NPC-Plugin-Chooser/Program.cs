@@ -140,7 +140,7 @@ namespace NPCPluginChooser
                     {
                         foreach (var npc in currentModContext.Mod.Npcs)
                         {
-                            if ((PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
+                            if (PPS.SelectAll || (PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
                             {
                                 string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);

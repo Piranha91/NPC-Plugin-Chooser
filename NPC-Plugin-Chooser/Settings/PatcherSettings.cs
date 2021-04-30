@@ -132,6 +132,10 @@ namespace NPCPluginChooser.Settings
         public HashSet<IFormLinkGetter<INpcGetter>> NPCs { get; set; } = new HashSet<IFormLinkGetter<INpcGetter>>();
 
         [SynthesisOrder]
+        [SynthesisTooltip("If checked, all NPCs in the chosen plugin will be forwarded.")]
+        public bool SelectAll { get; set; } = false;
+
+        [SynthesisOrder]
         [SynthesisTooltip("If checked, all NPCs in the chosen plugin EXCEPT the ones specified above will be forwarded.")]
         public bool InvertSelection { get; set; } = false;
 
