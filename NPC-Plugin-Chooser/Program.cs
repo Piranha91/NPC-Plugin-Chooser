@@ -533,7 +533,6 @@ namespace NPCPluginChooser
                         archiveMeshFile.CopyDataTo(NifStream);
                         meshFound = true;
                         NifBSAWinner = context.ModKey;
-                        break;
                     }
 
                     if (texFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item2, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
@@ -541,18 +540,21 @@ namespace NPCPluginChooser
                         archiveTexFile.CopyDataTo(DdsStream);
                         texFound = true;
                         DdsBSAWinner = context.ModKey;
-                        break;
                     }
-                }
 
-                if (!(NifBSAWinner.IsNull && DdsBSAWinner.IsNull) && NifBSAWinner != DdsBSAWinner)
-                {
-                    throw new Exception("The winning FaceGen nif and the winning FaceGen dds belonged to BSA archives for different plugins. This is unsupported.");
-                }
-                else
-                {
-                    BSAwinner = NifBSAWinner;
-                    Console.WriteLine("BSA winner found");
+                    if (meshFound && texFound) 
+                    {
+                        if (!(NifBSAWinner.IsNull && DdsBSAWinner.IsNull) && NifBSAWinner != DdsBSAWinner)
+                        {
+                            throw new Exception("The winning FaceGen nif and the winning FaceGen dds belonged to BSA archives for different plugins. This is unsupported.");
+                        }
+                        else
+                        {
+                            BSAwinner = NifBSAWinner;
+                            Console.WriteLine("BSA winner found");
+                        }
+                        break; 
+                    }
                 }
             }
 
