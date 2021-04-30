@@ -90,9 +90,8 @@ namespace NPCPluginChooser
                 outputSettings.SuppressKnownMissingFileWarnings = settings.SuppressKnownMissingFileWarnings;
 
                 int counter = 0;
-                foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
+                foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides().ToList())
                 {
-                    if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran A"); }
                     if (generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state))
                     {
                         counter++;
@@ -291,7 +290,7 @@ namespace NPCPluginChooser
         }
         public static bool generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, PatcherSettings settings, PatcherSettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey); // [0] is winning override. [Last] is source plugin
+            var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey).ToList(); // [0] is winning override. [Last] is source plugin
 
             bool proccessThisNPC = false;
 
@@ -302,12 +301,10 @@ namespace NPCPluginChooser
             var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, state, out bool hasFaceGen, out var winningBSAPlugin);
             if (hasFaceGen == false)
             {
-                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran B"); }
                 return false;
             }
             else if (winningBSAPlugin != null)
             {
-                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran C"); }
                 winningPlugin = winningBSAPlugin.Value;
             }
 
@@ -322,14 +319,12 @@ namespace NPCPluginChooser
 
             if (proccessThisNPC == false)
             {
-                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran D"); }
                 return false;
             }
 
             if (winningPlugin.IsNull) // if winning FaceGen is not from BSA (in which case its source mod was already found), figure out which mod the loose files came from
             {
                 winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
-                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran E"); }
             }
 
             winnerFaceGenStreams.Item1.Dispose();
@@ -338,7 +333,6 @@ namespace NPCPluginChooser
             // if a winning plugin was never found, warn user and continue
             if (winningPlugin.IsNull)
             {
-                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran F"); }
                 return false;
             }
             else
@@ -361,7 +355,6 @@ namespace NPCPluginChooser
                     outputSettings.PluginsToForward.Add(currentPPS);
                 }
 
-                if (npcCO.Record.Name != null && npcCO.Record.Name.ToString() == "Melaran") { Console.WriteLine("Melaran G"); }
                 currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
             }
 
@@ -482,7 +475,7 @@ namespace NPCPluginChooser
             return true;
         }
 
-        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner)
+        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner)
         {
             success = true;
             BSAwinner = null; // if the winning FaceGen is in a BSA, no need for the calling function to waste time looking for it - just report the calling ModKey here
@@ -531,23 +524,13 @@ namespace NPCPluginChooser
                         continue;
                     }
 
-                    if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran") 
-                    { 
-                        Console.WriteLine("Melaran Looking for Melaran in {0}", context.ModKey.ToString()); 
-                    }
-
                     var currentContextReaders = BSAHandler.openBSAArchiveReaders(PluginDirectoryDict[context.ModKey], context.ModKey);
-                    if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran")
-                    {
-                        Console.WriteLine("Have {0} open readers for Melaran", currentContextReaders.Count);
-                    }
 
                     if (meshFound == false && BSAHandler.HaveFile(BSAmeshPath, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
                     {
                         archiveMeshFile.CopyDataTo(NifStream);
                         meshFound = true;
                         NifBSAWinner = context.ModKey;
-                        if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran") { Console.WriteLine("Found Melaran mesh"); }
                     }
 
                     if (texFound == false && BSAHandler.HaveFile(BSAtexPath, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
@@ -555,7 +538,6 @@ namespace NPCPluginChooser
                         archiveTexFile.CopyDataTo(DdsStream);
                         texFound = true;
                         DdsBSAWinner = context.ModKey;
-                        if (context.Record.Name != null && context.Record.Name.ToString() == "Melaran") { Console.WriteLine("Found Melaran tex"); }
                     }
 
                     if (meshFound && texFound) 
@@ -581,7 +563,7 @@ namespace NPCPluginChooser
             return (NifStream, DdsStream);
         }
 
-        public static ModKey getLooseFaceGenMatch(IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (MemoryStream, MemoryStream) winnerStreams, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static ModKey getLooseFaceGenMatch(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (MemoryStream, MemoryStream) winnerStreams, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             ModKey winner = new ModKey();
 
