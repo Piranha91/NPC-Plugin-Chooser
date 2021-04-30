@@ -520,7 +520,12 @@ namespace NPCPluginChooser
                     {
                         if (!(NifBSAWinner.IsNull && DdsBSAWinner.IsNull) && NifBSAWinner != DdsBSAWinner)
                         {
-                            throw new Exception("The winning FaceGen nif and the winning FaceGen dds belonged to BSA archives for different plugins. This is unsupported.");
+                            Console.WriteLine("The winning FaceGen nif and the winning FaceGen dds belonged to BSA archives for different plugins. This is unsupported.");
+                            Console.WriteLine("NPC: {0}", context.Record.Name);
+                            Console.WriteLine("Winning NIF mod: {0}", NifBSAWinner.ToString());
+                            Console.WriteLine("Winning DDS mod: {0}", DdsBSAWinner.ToString());
+                            success = false;
+                            return (NifStream, DdsStream);
                         }
                         else
                         {
