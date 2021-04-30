@@ -495,7 +495,7 @@ namespace NPCPluginChooser
 
             // check for loose file in data path first.
 
-            string winnerMeshPath = Path.Combine(FaceGenSubPaths.Item1, "meshes", FaceGenSubPaths.Item1);
+            string winnerMeshPath = Path.Combine(state.DataFolderPath, "meshes", FaceGenSubPaths.Item1);
             string winnerTexPath = Path.Combine(state.DataFolderPath, "textures", FaceGenSubPaths.Item2);
 
             bool meshFound = false;
@@ -530,6 +530,7 @@ namespace NPCPluginChooser
 
                     if (meshFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item1, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
                     {
+                        Console.WriteLine("Found a mesh in BSA archive for {0}", context.ModKey.ToString());
                         archiveMeshFile.CopyDataTo(NifStream);
                         meshFound = true;
                         NifBSAWinner = context.ModKey;
@@ -537,6 +538,7 @@ namespace NPCPluginChooser
 
                     if (texFound == false && BSAHandler.HaveFile(FaceGenSubPaths.Item2, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
                     {
+                        Console.WriteLine("Found a texture in BSA archive for {0}", context.ModKey.ToString());
                         archiveTexFile.CopyDataTo(DdsStream);
                         texFound = true;
                         DdsBSAWinner = context.ModKey;
