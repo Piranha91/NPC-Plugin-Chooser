@@ -309,7 +309,7 @@ namespace NPCPluginChooser
 
             switch (settings.SettingsGenMode)
             {
-                case SettingsGenMode.All: break;
+                case SettingsGenMode.All: proccessThisNPC = true; break;
                 case SettingsGenMode.RecordConflictsOnly: proccessThisNPC = contexts.Count() > 1 || hasAppearanceRecordConflict(contexts.Last(), contexts.First()); break;
                 case SettingsGenMode.FaceGenConflictsOnly: 
                     //proccessThisNPC = checkFaceGenMatch(contexts.Last(), contexts, settings.GameDirPath, state) == false; 
@@ -597,6 +597,7 @@ namespace NPCPluginChooser
                 if (meshMatched && texMatched)
                 {
                     winner = context.ModKey;
+                    break;
                 }
             }
 
