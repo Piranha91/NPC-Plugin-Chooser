@@ -163,7 +163,7 @@ namespace NPCPluginChooser
                     }
 
                     //remap dependencies
-                    if (settings.BaseGamePlugins.Contains(PPS.Plugin) == false)
+                    if (settings.BaseGamePlugins.Contains(PPS.Plugin) == false || settings.PluginsExcludedFromMerge.Contains(PPS.Plugin))
                     {
                         Console.WriteLine("Remapping Dependencies from {0}.", PPS.Plugin.ToString());
                         state.PatchMod.DuplicateFromOnlyReferenced(state.LinkCache, PPS.Plugin, out var _);
