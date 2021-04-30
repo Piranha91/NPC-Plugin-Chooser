@@ -291,21 +291,21 @@ namespace NPCPluginChooser
         }
         public static bool generateSettingsForNPC(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> npcCO, PatcherSettings settings, PatcherSettings outputSettings, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            var watch = new System.Diagnostics.Stopwatch();
+            var watch = new System.Diagnostics.Stopwatch(); watch.Start();
             var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey); // [0] is winning override. [Last] is source plugin
-            Console.WriteLine($"ResolveAllContexts() Execution Time: {watch.ElapsedMilliseconds} ms");
+            watch.Stop(); Console.WriteLine($"ResolveAllContexts() Execution Time: {watch.ElapsedMilliseconds} ms"); 
 
             bool proccessThisNPC = false;
 
-            watch = new System.Diagnostics.Stopwatch();
+            watch.Restart();
             var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
-            Console.WriteLine($"getFaceGenSubPathStrings() Execution Time: {watch.ElapsedMilliseconds} ms");
+            watch.Stop(); Console.WriteLine($"getFaceGenSubPathStrings() Execution Time: {watch.ElapsedMilliseconds} ms");
             var winningPlugin = new ModKey();
 
             //Console.WriteLine("Getting winner facegen streams");
-            watch = new System.Diagnostics.Stopwatch();
+            watch.Restart();
             var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, state, out bool hasFaceGen, out var winningBSAPlugin);
-            Console.WriteLine($"getFaceGenWinnerStreams() Execution Time: {watch.ElapsedMilliseconds} ms");
+            watch.Stop(); Console.WriteLine($"getFaceGenWinnerStreams() Execution Time: {watch.ElapsedMilliseconds} ms");
             if (hasFaceGen == false)
             {
                 //Console.WriteLine("No FaceGen");
@@ -334,9 +334,9 @@ namespace NPCPluginChooser
             if (winningPlugin.IsNull) // if winning FaceGen is not from BSA (in which case its source mod was already found), figure out which mod the loose files came from
             {
                 //Console.WriteLine("Looking for loose FaceGen match");
-                watch = new System.Diagnostics.Stopwatch();
+                watch.Restart();
                 winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
-                Console.WriteLine($"getLooseFaceGenMatch() Execution Time: {watch.ElapsedMilliseconds} ms");
+                watch.Stop(); Console.WriteLine($"getLooseFaceGenMatch() Execution Time: {watch.ElapsedMilliseconds} ms");
             }
 
             winnerFaceGenStreams.Item1.Dispose();
@@ -351,7 +351,7 @@ namespace NPCPluginChooser
             }
             else
             {
-                watch = new System.Diagnostics.Stopwatch();
+                watch.Restart();
                 //Console.WriteLine("Adding found NPC");
                 var currentPPS = new PerPluginSettings();
                 bool foundCurrentPPS = false;
@@ -375,7 +375,7 @@ namespace NPCPluginChooser
 
                 currentPPS.NPCs.Add(npcCO.Record.AsLinkGetter());
 
-                Console.WriteLine($"Settings Update Execution Time: {watch.ElapsedMilliseconds} ms");
+                watch.Stop(); Console.WriteLine($"Settings Update Execution Time: {watch.ElapsedMilliseconds} ms");
             }
 
             return true;
