@@ -520,8 +520,9 @@ namespace NPCPluginChooser
                     {
                         if (!(NifBSAWinner.IsNull && DdsBSAWinner.IsNull) && NifBSAWinner != DdsBSAWinner)
                         {
+                            string NPCdispStr = context.Record.Name + " | " + context.Record.EditorID + " | " + context.Record.FormKey.ToString();
                             Console.WriteLine("The winning FaceGen nif and the winning FaceGen dds belonged to BSA archives for different plugins. This is unsupported.");
-                            Console.WriteLine("NPC: {0}", context.Record.Name);
+                            Console.WriteLine("NPC: {0}", NPCdispStr);
                             Console.WriteLine("Winning NIF mod: {0}", NifBSAWinner.ToString());
                             Console.WriteLine("Winning DDS mod: {0}", DdsBSAWinner.ToString());
                             success = false;
