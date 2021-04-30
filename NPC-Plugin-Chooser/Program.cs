@@ -92,7 +92,6 @@ namespace NPCPluginChooser
                 int counter = 0;
                 foreach (var npcCO in state.LoadOrder.PriorityOrder.Npc().WinningContextOverrides())
                 {
-                    Console.WriteLine("Current NPC: {0}", npcCO.Record.Name);
                     if (generateSettingsForNPC(npcCO, settings, outputSettings, PluginDirectoryDict, state))
                     {
                         counter++;
