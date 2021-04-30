@@ -1238,7 +1238,7 @@ namespace NPCPluginChooser
             {
                 using (var stream = File.OpenRead(filename))
                 {
-                    var hash = md5.ComputeHash(stream).ToString();
+                    var hash = md5.ComputeHash(stream);
                     if (hash == null)
                     {
                         Console.WriteLine("Could not compute hash of file {0}", filename);
@@ -1246,7 +1246,7 @@ namespace NPCPluginChooser
                     }
                     else
                     {
-                        return hash;
+                        return BitConverter.ToString(hash).Replace("-", string.Empty).ToLower(); // https://stackoverflow.com/questions/37106426/system-byte-is-being-returned-instead-of-the-actual-data
                     }
                 }
             }
