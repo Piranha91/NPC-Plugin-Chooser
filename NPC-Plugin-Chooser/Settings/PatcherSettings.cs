@@ -28,11 +28,6 @@ namespace NPCPluginChooser.Settings
         public string MO2DataPath { get; set; } = "";
 
         [SynthesisOrder]
-        [SynthesisSettingName("Game Directory")]
-        [SynthesisTooltip("Path of your Game Directory (the folder that contains Skyrim(SE/VR).exe. Leave blank unless auto-detection is failing.")]
-        public string GameDirPath { get; set; } = "";
-
-        [SynthesisOrder]
         [SynthesisTooltip("Directory to which meshes and textures should be copied.")]
         public string AssetOutputDirectory { get; set; } = "";
 

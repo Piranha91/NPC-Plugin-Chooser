@@ -47,16 +47,6 @@ namespace NPCPluginChooser
             {
                 throw new Exception("Cannot find the Mod Organizer 2 Mods folder specified in settings: " + settings.MO2DataPath);
             }
-
-            if (settings.Mode == Mode.SettingsGen && settings.SettingsGenMode == SettingsGenMode.All && settings.GameDirPath == "")
-            {
-                throw new Exception("Game Path must be set for SettingsGen Mode \"All\".");
-            }
-
-            if (settings.GameDirPath != "" && !Directory.Exists(settings.GameDirPath))
-            {
-                throw new Exception("Cannot find the game folder specified in settings: " + settings.GameDirPath);
-            }
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
@@ -69,22 +59,6 @@ namespace NPCPluginChooser
 
             getWarningsToSuppress(settings, state);
             getPathstoIgnore(settings, state);
-
-            if (settings.GameDirPath == "")
-            {
-                if (state.DataFolderPath != null)
-                {
-                    var parent = Directory.GetParent(state.DataFolderPath);
-                    if (parent != null)
-                    {
-                        settings.GameDirPath = parent.ToString();
-                    }
-                }
-                else
-                {
-                    throw new Exception("Synthesis Data Folder Path is null");
-                }
-            }
 
             if (settings.Mode == Mode.SettingsGen)
             {
@@ -799,11 +773,6 @@ namespace NPCPluginChooser
                 return PluginDirectoryDict;
             }
 
-            if (settings.GameDirPath != "" && Directory.Exists(settings.GameDirPath) == false)
-            {
-                throw new Exception("Could not find the game directory at " + settings.GameDirPath);
-            }
-
             if (settings.Mode == Mode.SettingsGen)
             {
                 foreach (var mkPair in state.LoadOrder)
@@ -812,7 +781,7 @@ namespace NPCPluginChooser
 
                     if (settings.BaseGamePlugins.Contains(mk)) 
                     {
-                        PluginDirectoryDict.Add(mk, Path.Combine(settings.GameDirPath, "data"));
+                        PluginDirectoryDict.Add(mk, state.DataFolderPath);
                         continue; 
                     }
 
@@ -835,7 +804,6 @@ namespace NPCPluginChooser
             }
             else
             {
-                string baseDataFolder = Path.Combine(settings.GameDirPath, "data");
                 foreach (var PPS in settings.PluginsToForward)
                 {
                     if (PPS.Plugin != null)
@@ -855,15 +823,7 @@ namespace NPCPluginChooser
                                 }
                                 if (settings.BaseGamePlugins.Contains(PPS.Plugin))
                                 {
-                                    if (settings.GameDirPath == "")
-                                    {
-                                        throw new Exception("Forwarding appearance from a base game plugin requires the Game Directory to be set");
-                                    }
-                                    if (Directory.Exists(baseDataFolder) == false)
-                                    {
-                                        throw new Exception("User requested a plugin to be forwarded from base game plugin " + PPS.Plugin + " but Game Data directory " + baseDataFolder + " cannot be found.");
-                                    }
-                                    PluginDirectoryDict.Add(PPS.Plugin, baseDataFolder);
+                                    PluginDirectoryDict.Add(PPS.Plugin, state.DataFolderPath);
                                     break;
                                 }
 
