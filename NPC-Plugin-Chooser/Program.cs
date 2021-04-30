@@ -293,7 +293,7 @@ namespace NPCPluginChooser
                 winningPlugin = winningBSAPlugin.Value;
             }
 
-            if (settings.SettingsGenMode == SettingsGenMode.RecordConflictsOnly && !(contexts.Count() > 1 && hasAppearanceRecordConflict(contexts.Last(), contexts.First())))
+            if (settings.SettingsGenMode == SettingsGenMode.RecordConflictsOnly && !(contexts.Count > 1 && hasAppearanceRecordConflict(contexts.Last(), contexts.First())))
             {
                 return false;
             }
