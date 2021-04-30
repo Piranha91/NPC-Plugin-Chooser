@@ -69,6 +69,23 @@ namespace NPCPluginChooser
 
             getWarningsToSuppress(settings, state);
             getPathstoIgnore(settings, state);
+
+            if (settings.GameDirPath == "")
+            {
+                if (state.DataFolderPath != null)
+                {
+                    var parent = Directory.GetParent(state.DataFolderPath);
+                    if (parent != null)
+                    {
+                        settings.GameDirPath = parent.ToString();
+                    }
+                }
+                else
+                {
+                    throw new Exception("Synthesis Data Folder Path is null");
+                }
+            }
+
             if (settings.Mode == Mode.SettingsGen)
             {
                 getVanillaNPCsForSettingsGen(settings, state);
@@ -103,6 +120,7 @@ namespace NPCPluginChooser
                 }
 
                 outputSettings.PluginsToForward = sortPPS(outputSettings.PluginsToForward, state);
+                flagPluginsForMerge(outputSettings.PluginsToForward, settings, state);
 
                 // write output settings here
 
@@ -292,8 +310,6 @@ namespace NPCPluginChooser
         {
             var contexts = state.LinkCache.ResolveAllContexts<INpc, INpcGetter>(npcCO.Record.FormKey).ToList(); // [0] is winning override. [Last] is source plugin
 
-            bool proccessThisNPC = false;
-
             var FaceGenSubPaths = getFaceGenSubPathStrings(npcCO.Record.FormKey);
 
             var winningPlugin = new ModKey();
@@ -308,16 +324,7 @@ namespace NPCPluginChooser
                 winningPlugin = winningBSAPlugin.Value;
             }
 
-            switch (settings.SettingsGenMode)
-            {
-                case SettingsGenMode.All: proccessThisNPC = true; break;
-                case SettingsGenMode.RecordConflictsOnly: proccessThisNPC = contexts.Count() > 1 || hasAppearanceRecordConflict(contexts.Last(), contexts.First()); break;
-                case SettingsGenMode.FaceGenConflictsOnly: 
-                    //proccessThisNPC = checkFaceGenMatch(contexts.Last(), contexts, settings.GameDirPath, state) == false; 
-                    break;
-            }
-
-            if (proccessThisNPC == false)
+            if (settings.SettingsGenMode == SettingsGenMode.RecordConflictsOnly && !(contexts.Count() > 1 && hasAppearanceRecordConflict(contexts.Last(), contexts.First())))
             {
                 return false;
             }
@@ -1267,6 +1274,38 @@ namespace NPCPluginChooser
             }
 
             return outputPPS;
+        }
+
+        public static void flagPluginsForMerge(HashSet<PerPluginSettings> inputPPS, PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            foreach (var pps in inputPPS)
+            {
+                if (settings.BaseGamePlugins.Contains(pps.Plugin))
+                {
+                    continue;
+                }
+
+                bool hasNewNPC = false;
+                var currentModIndex = state.LoadOrder.IndexOf(pps.Plugin);
+                if (currentModIndex >= 0)
+                {
+                    var currentMod = state.LoadOrder[currentModIndex].Mod;
+                    if (currentMod == null) { continue; }
+                    
+                    foreach (var npc in currentMod.Npcs)
+                    {
+                        if (npc.FormKey.ModKey == pps.Plugin)
+                        {
+                            hasNewNPC = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasNewNPC == false)
+                {
+                    pps.AddToMergeJSON = true;
+                }
+            }
         }
 
         //https://stackoverflow.com/questions/11454004/calculate-a-md5-hash-from-a-string

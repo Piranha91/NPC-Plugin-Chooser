@@ -29,7 +29,7 @@ namespace NPCPluginChooser.Settings
 
         [SynthesisOrder]
         [SynthesisSettingName("Game Directory")]
-        [SynthesisTooltip("Path of your Game Directory (the folder that contains Skyrim(SE/VR).exe. Only required if forwarding NPC appearance from one a vanilla record, otherwise can be left blank.")]
+        [SynthesisTooltip("Path of your Game Directory (the folder that contains Skyrim(SE/VR).exe. Leave blank unless auto-detection is failing.")]
         public string GameDirPath { get; set; } = "";
 
         [SynthesisOrder]
