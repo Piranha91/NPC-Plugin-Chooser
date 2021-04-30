@@ -140,7 +140,7 @@ namespace NPCPluginChooser
                     {
                         foreach (var npc in currentModContext.Mod.Npcs)
                         {
-                            if ((PPS.SelectAll && pluginContainsNPC(npc, PPS.Plugin, state)) || (PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
+                            if ((PPS.SelectAll || (PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
                             {
                                 string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
@@ -1225,27 +1225,6 @@ namespace NPCPluginChooser
                     pps.AddToMergeJSON = true;
                 }
             }
-        }
-
-        public static bool pluginContainsNPC(INpcGetter? npc, ModKey pluginKey, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
-        {
-            if (npc == null)
-            {
-                return false;
-            }
-
-            var currentModIndex = state.LoadOrder.IndexOf(pluginKey);
-            if (currentModIndex >= 0)
-            {
-                var currentMod = state.LoadOrder[currentModIndex].Mod;
-                if (currentMod == null) { return false; }
-
-                if (currentMod.Npcs.Contains(npc))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
 
         //https://stackoverflow.com/questions/11454004/calculate-a-md5-hash-from-a-string
