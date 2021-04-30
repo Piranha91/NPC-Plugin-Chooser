@@ -60,11 +60,6 @@ namespace NPCPluginChooser
             getWarningsToSuppress(settings, state);
             getPathstoIgnore(settings, state);
 
-            if (settings.Mode == Mode.SettingsGen)
-            {
-                getVanillaNPCsForSettingsGen(settings, state);
-            }
-
             if (settings.AssetOutputDirectory != "" && Directory.Exists(settings.AssetOutputDirectory) && settings.ClearAssetOutputDirectory && settings.Mode != Mode.SettingsGen)
             {
                 clearOuptutDir(settings);
@@ -704,42 +699,6 @@ namespace NPCPluginChooser
             catch
             {
                 throw new Exception("Failed to deserialize the list of suppressed file warnings at " + settingsPath + ". Please make sure you don't have an old version, and that you introduced JSON format errors if you edited it yourself.");
-            }
-        }
-
-        public static void getVanillaNPCsForSettingsGen(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
-        {
-            string settingsPath = Path.Combine(state.ExtraSettingsDataPath, "SettingsGen Vanilla NPCs.json");
-            if (!File.Exists(settingsPath))
-            {
-                throw new Exception("Could not find the list of vanilla NPCs with FaceGen (expected at: " + settingsPath + ").");
-            }
-
-            try
-            {
-                string file = File.ReadAllText(settingsPath);
-                var tmp = JsonConvert.DeserializeObject<HashSet<string>>(file);
-
-                if (tmp == null)
-                {
-                    throw new Exception("Could not deserialize list of vanilla NPCs with FaceGen to HashSet<string> (at: " + settingsPath + ").");
-                }
-                
-                foreach (string s in tmp)
-                {
-                    if (FormKey.TryFactory(s, out var FK))
-                    {
-                        settings.settingsGen_VanillaNPCs.Add(FK);
-                    }
-                    else
-                    {
-                        throw new Exception("Could not find a FormKey for expected vanilla NPC " + s);
-                    }
-                }
-            }
-            catch
-            {
-                throw new Exception("Error deserializing list of vanilla NPCs with FaceGen to HashSet<string> (at: " + settingsPath + ").");
             }
         }
 

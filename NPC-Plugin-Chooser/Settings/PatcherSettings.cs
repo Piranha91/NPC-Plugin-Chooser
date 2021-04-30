@@ -105,8 +105,6 @@ namespace NPCPluginChooser.Settings
         public HashSet<suppressedWarnings> warningsToSuppress { get; set; } = new HashSet<suppressedWarnings>();
         [SynthesisIgnoreSetting]
         public suppressedWarnings warningsToSuppress_Global { get; set; } = new suppressedWarnings();
-        [SynthesisIgnoreSetting]
-        public HashSet<FormKey> settingsGen_VanillaNPCs { get; set; } = new HashSet<FormKey>();
     }
 
     public enum Mode
