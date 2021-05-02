@@ -11,7 +11,7 @@ Configure the settings in Synthesis to reflect your preferences. Then, you will 
 
 ![Screenshot](https://raw.github.com/Piranha91/NPC-Plugin-Chooser/main/Docs/Images/Abort_Button.png)
 
-Now, you should have a settings.json file in your Synthesis\Data\NPC-Appearance-Plugin-Filterer folder. Copy that file to `NPC 1.x\Data`, replacing the settings.json file that already exists there. Then you can add the patcher as an executable in MO2 and run it. 
+Now, you should have a settings.json file in your Synthesis\Data\NPC-Plugin-Chooser folder. Copy that file to `NPC 1.x\Data`, replacing the settings.json file that already exists there. Then you can add the patcher as an executable in MO2 and run it. 
 
 ### Pros and cons of each approach
 
