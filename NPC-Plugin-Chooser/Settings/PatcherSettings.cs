@@ -19,8 +19,12 @@ namespace NPCPluginChooser.Settings
         public Mode Mode { get; set; } = Mode.Deep;
 
         [SynthesisOrder]
-        [SynthesisTooltip("All: a record will be generated for every NPC regardless of conflict status.\nRecordConflictsOnly: Records will only be generated for NPCs with non-vanilla appearance-related plugin data.\nFaceGenConflictsOnly: Records will only be generated for NPCs with non-vanilla FaceGen files.")]
+        [SynthesisTooltip("All: a record will be generated for every NPC regardless of conflict status.\nRecordConflictsOnly: Records will only be generated for NPCs with appearance conflicts.")]
         public SettingsGenMode SettingsGenMode { get; set; } = SettingsGenMode.RecordConflictsOnly;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("LoadOrder: SettingsGen will forward appearance based on winning plugin for that NPC.\nFaceGenOrder: SettingsGen will forward appearance based on winning FaceGen assets for that NPC.")]
+        public SettingsGenSelectBy SettingGenChooseBy { get; set; } = SettingsGenSelectBy.LoadOrder;
 
         [SynthesisOrder]
         [SynthesisSettingName("Mod Organizer 2\\mods Path")]
@@ -120,6 +124,12 @@ namespace NPCPluginChooser.Settings
         RecordConflictsOnly
     }
 
+    public enum SettingsGenSelectBy
+    {
+        LoadOrder,
+        FaceGenOrder
+    }
+
     public class PerPluginSettings
     {
         [SynthesisOrder]
@@ -146,7 +156,7 @@ namespace NPCPluginChooser.Settings
         [SynthesisOrder]
         [SynthesisTooltip("If FaceGen or extra assets are not found in the plugin's MO2 directory or its Forced Asset Directory, NAPF will search through these additional directories to try to find them.")]
         public HashSet<string> ExtraDataDirectories { get; set; } = new HashSet<string>();
-        
+
         [SynthesisOrder]
         [SynthesisTooltip("If checked, patcher will look in .nif files for additional textures not references in the NPC's plugin. Safer to leave on to avoid missing texture, but slows down patching ~4-5x.")]
         public bool FindExtraTexturesInNifs { get; set; } = true;

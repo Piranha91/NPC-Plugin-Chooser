@@ -106,7 +106,7 @@ namespace NPCPluginChooser
                     {
                         Directory.CreateDirectory(settings.AssetOutputDirectory);
                     }
-                    if (Directory.Exists (Path.Combine(settings.AssetOutputDirectory, settingsDirName)) == false)
+                    if (Directory.Exists(Path.Combine(settings.AssetOutputDirectory, settingsDirName)) == false)
                     {
                         Directory.CreateDirectory(Path.Combine(settings.AssetOutputDirectory, settingsDirName));
                     }
@@ -124,7 +124,7 @@ namespace NPCPluginChooser
             else
             {
                 HashSet<mergeJsonOutputPluginEntry> mergeJSONlist = new HashSet<mergeJsonOutputPluginEntry>();
-                
+
                 foreach (var PPS in settings.PluginsToForward)
                 {
                     Console.WriteLine("Processing {0}", PPS.Plugin.ToString());
@@ -184,7 +184,7 @@ namespace NPCPluginChooser
                     createJsonMergeFile(mergeJSONlist, settings, state);
                 }
             }
-        }      
+        }
 
         public static Npc addNPCtoPatch(INpcGetter userSelectedNPC, PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
@@ -210,7 +210,7 @@ namespace NPCPluginChooser
                         }
 
                         forwardedOR.FaceMorph = userSelectedNPC.FaceMorph?.DeepCopy();
-                        
+
                         forwardedOR.FaceParts = userSelectedNPC.FaceParts?.DeepCopy();
 
                         forwardedOR.FarAwayModel.SetTo(userSelectedNPC.FarAwayModel);
@@ -221,7 +221,7 @@ namespace NPCPluginChooser
                         forwardedOR.HeadParts.AddRange(userSelectedNPC.HeadParts);
 
                         forwardedOR.HeadTexture.SetTo(userSelectedNPC.HeadTexture);
-                        
+
                         forwardedOR.Height = userSelectedNPC.Height;
 
                         forwardedOR.Race.SetTo(userSelectedNPC.Race);
@@ -235,7 +235,7 @@ namespace NPCPluginChooser
 
                         forwardedOR.TintLayers.Clear();
                         forwardedOR.TintLayers.AddRange(userSelectedNPC.TintLayers.Select(a => a.DeepCopy()));
-                        
+
                         forwardedOR.Weight = userSelectedNPC.Weight;
 
                         forwardedOR.WornArmor.SetTo(userSelectedNPC.WornArmor);
@@ -283,28 +283,47 @@ namespace NPCPluginChooser
 
             var winningPlugin = new ModKey();
 
-            var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, state, out bool hasFaceGen, out var winningBSAPlugin);
-            if (hasFaceGen == false)
+            bool includeSourcePlugin = true;
+            if (settings.SettingsGenMode == SettingsGenMode.RecordConflictsOnly)
             {
-                return false;
-            }
-            else if (winningBSAPlugin != null)
-            {
-                winningPlugin = winningBSAPlugin.Value;
+                includeSourcePlugin = false;
             }
 
-            if (settings.SettingsGenMode == SettingsGenMode.RecordConflictsOnly && !(contexts.Count > 1 && hasAppearanceRecordConflict(contexts.Last(), contexts.First())))
+            switch (settings.SettingGenChooseBy)
             {
-                return false;
+                case SettingsGenSelectBy.FaceGenOrder:
+                    var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, includeSourcePlugin, state, out bool hasFaceGen, out var winningBSAPlugin);
+                    if (hasFaceGen == false)
+                    {
+                        return false;
+                    }
+                    else if (winningBSAPlugin != null)
+                    {
+                        winningPlugin = winningBSAPlugin.Value;
+                    }
+                    if (winningPlugin.IsNull) // if winning FaceGen is not from BSA (in which case its source mod was already found), figure out which mod the loose files came from
+                    {
+                        winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
+                    }
+                    winnerFaceGenStreams.Item1.Dispose();
+                    winnerFaceGenStreams.Item2.Dispose();
+                    break;
+                case SettingsGenSelectBy.LoadOrder:
+                    foreach (var context in contexts) // winner is first, base is last
+                    {
+                        if (includeSourcePlugin == false && context.ModKey == context.Record.FormKey.ModKey)
+                        {
+                            continue;
+                        }
+
+                        if (faceGenExists(context.Record.FormKey, context.ModKey, PluginDirectoryDict[context.ModKey], new HashSet<string>(), true, state, out var BSAfiles))
+                        {
+                            winningPlugin = context.ModKey;
+                        }
+                    }
+                    break;
             }
 
-            if (winningPlugin.IsNull) // if winning FaceGen is not from BSA (in which case its source mod was already found), figure out which mod the loose files came from
-            {
-                winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
-            }
-
-            winnerFaceGenStreams.Item1.Dispose();
-            winnerFaceGenStreams.Item2.Dispose();
 
             // if a winning plugin was never found, warn user and continue
             if (winningPlugin.IsNull)
@@ -335,25 +354,6 @@ namespace NPCPluginChooser
             }
 
             return true;
-        }
-
-        public static bool hasAppearanceRecordConflict(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> conflictWinnner, IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> baseNPC)
-        {
-            var cw = conflictWinnner.Record;
-            var bn = baseNPC.Record;
-
-            if ((cw.FaceMorph != null && bn.FaceMorph == null) || (cw.FaceMorph == null && bn.FaceMorph != null) || (cw.FaceMorph != null && !cw.FaceMorph.Equals(baseNPC.Record.FaceMorph))) { return true; }
-            if ((cw.FaceParts != null && bn.FaceParts == null) || (cw.FaceParts == null && bn.FaceParts != null) || (cw.FaceParts != null && !cw.FaceParts.Equals(baseNPC.Record.FaceParts))) { return true; }
-            if (!cw.FarAwayModel.Equals(bn.FarAwayModel)) { return true; }
-            if (!cw.HairColor.Equals(bn.HairColor)) { return true; }
-            if (!cw.HeadParts.Equals(bn.HeadParts)) { return true; }
-            if (!cw.HeadTexture.Equals(bn.HeadTexture)) { return true; }
-            if (!cw.Race.Equals(bn.Race)) { return true; }
-            if (!cw.TextureLighting.Equals(bn.TextureLighting)) { return true; }
-            if (!cw.TintLayers.Equals(bn.TintLayers)) { return true; }
-            if (!cw.WornArmor.Equals(bn.WornArmor)) { return true; }
-
-            return false;
         }
 
         public static bool faceGenExists(FormKey NPCFormKey, ModKey currentModKey, string rootPath, HashSet<string> extraDataPaths, bool handleBSAFiles, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out (IArchiveFile?, IArchiveFile?) BSAFiles)
@@ -451,7 +451,7 @@ namespace NPCPluginChooser
             return true;
         }
 
-        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner)
+        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, bool IncludeSourcePlugin, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner)
         {
             success = true;
             BSAwinner = null; // if the winning FaceGen is in a BSA, no need for the calling function to waste time looking for it - just report the calling ModKey here
@@ -495,6 +495,12 @@ namespace NPCPluginChooser
                 string BSAtexPath = Path.Combine("textures", FaceGenSubPaths.Item2);
                 foreach (var context in allNPCcontexts) // winning context is first, root is last
                 {
+                    if (IncludeSourcePlugin == false && context.Record.FormKey.ModKey == context.ModKey)
+                    {
+                        success = false;
+                        return (NifStream, DdsStream);
+                    }
+
                     if (state.LinkCache.TryResolve<IRaceGetter>(context.Record.Race.FormKey, out var currentRaceGetter) && !currentRaceGetter.Flags.HasFlag(Race.Flag.FaceGenHead))
                     {
                         continue;
@@ -516,7 +522,7 @@ namespace NPCPluginChooser
                         DdsBSAWinner = context.ModKey;
                     }
 
-                    if (meshFound && texFound) 
+                    if (meshFound && texFound)
                     {
                         if (!(NifBSAWinner.IsNull && DdsBSAWinner.IsNull) && NifBSAWinner != DdsBSAWinner)
                         {
@@ -532,7 +538,7 @@ namespace NPCPluginChooser
                         {
                             BSAwinner = NifBSAWinner;
                         }
-                        break; 
+                        break;
                     }
                 }
             }
@@ -744,10 +750,10 @@ namespace NPCPluginChooser
                 {
                     var mk = mkPair.Key;
 
-                    if (settings.BaseGamePlugins.Contains(mk)) 
+                    if (settings.BaseGamePlugins.Contains(mk))
                     {
                         PluginDirectoryDict.Add(mk, state.DataFolderPath);
-                        continue; 
+                        continue;
                     }
 
                     bool dirFound = false;
@@ -854,11 +860,11 @@ namespace NPCPluginChooser
                 if (settings.HandleBSAFiles_Patching)
                 {
                     getExtraTexturesFromNif(extractedMeshFiles, settings.AssetOutputDirectory, extraTexturesFromNif, alreadyHandledTextures); //traverse nifs for extra textures (BSA extracted nifs - in output folder)
-                    
+
                     // extract these additional textures from BSA if possible
                     HashSet<string> ExtractedExtraTextures = new HashSet<string>();
                     unpackAssetsFromBSA(new HashSet<string>(), extraTexturesFromNif, new HashSet<string>(), ExtractedExtraTextures, NPCModKey, currentModDirectory, settings); // if any additional textures live the BSA, unpack them
-                    
+
                     // remove BSA-unpacked textures from the additional texture list
                     foreach (string s in ExtractedExtraTextures)
                     {
@@ -991,7 +997,7 @@ namespace NPCPluginChooser
                 if (!isIgnored(s, settings.pathsToIgnore))
                 {
                     string currentPath = Path.Join(dataPath, type, s);
-                    
+
                     bool bFileExists = false;
                     // check if file exists at primary path
                     if (File.Exists(currentPath))
@@ -1077,7 +1083,7 @@ namespace NPCPluginChooser
             return "." + split[split.Length - 1];
         }
 
-        public static bool isIgnored (string s, HashSet<string> toIgnore)
+        public static bool isIgnored(string s, HashSet<string> toIgnore)
         {
             string l = s.ToLower();
             foreach (string ig in toIgnore)
@@ -1216,7 +1222,7 @@ namespace NPCPluginChooser
                 {
                     var currentMod = state.LoadOrder[currentModIndex].Mod;
                     if (currentMod == null) { continue; }
-                    
+
                     foreach (var npc in currentMod.Npcs)
                     {
                         if (npc.FormKey.ModKey == pps.Plugin)
