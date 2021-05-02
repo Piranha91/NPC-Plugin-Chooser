@@ -144,6 +144,7 @@ namespace NPCPluginChooser
                             {
                                 string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
+                                Console.WriteLine("Debug: {0} {1}", currentModContext.ModKey.ToString(), currentDataDir);
                                 if (faceGenExists(npc.FormKey, currentModContext.ModKey, currentDataDir, PPS.ExtraDataDirectories, settings.HandleBSAFiles_Patching, state, out var BSAfiles) == false)
                                 {
                                     if (settings.AbortIfMissingFaceGen)
