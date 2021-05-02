@@ -292,7 +292,7 @@ namespace NPCPluginChooser
             switch (settings.SettingGenChooseBy)
             {
                 case SettingsGenSelectBy.FaceGenOrder:
-                    var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, includeSourcePlugin, state, out bool hasFaceGen, out var winningBSAPlugin);
+                    var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, includeSourcePlugin, settings.SettingsGenIgnoredPlugins, state, out bool hasFaceGen, out var winningBSAPlugin);
                     if (hasFaceGen == false)
                     {
                         return false;
@@ -303,7 +303,7 @@ namespace NPCPluginChooser
                     }
                     if (winningPlugin.IsNull) // if winning FaceGen is not from BSA (in which case its source mod was already found), figure out which mod the loose files came from
                     {
-                        winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, state);
+                        winningPlugin = getLooseFaceGenMatch(contexts, winnerFaceGenStreams, FaceGenSubPaths, PluginDirectoryDict, settings.SettingsGenIgnoredPlugins, state);
                     }
                     winnerFaceGenStreams.Item1.Dispose();
                     winnerFaceGenStreams.Item2.Dispose();
@@ -312,6 +312,11 @@ namespace NPCPluginChooser
                     foreach (var context in contexts) // winner is first, base is last
                     {
                         if (includeSourcePlugin == false && context.ModKey == context.Record.FormKey.ModKey)
+                        {
+                            continue;
+                        }
+
+                        if (settings.SettingsGenIgnoredPlugins.Contains(context.ModKey))
                         {
                             continue;
                         }
@@ -451,7 +456,7 @@ namespace NPCPluginChooser
             return true;
         }
 
-        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, bool IncludeSourcePlugin, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner)
+        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, bool IncludeSourcePlugin, HashSet<ModKey> IgnoredPlugins, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner)
         {
             success = true;
             BSAwinner = null; // if the winning FaceGen is in a BSA, no need for the calling function to waste time looking for it - just report the calling ModKey here
@@ -495,10 +500,14 @@ namespace NPCPluginChooser
                 string BSAtexPath = Path.Combine("textures", FaceGenSubPaths.Item2);
                 foreach (var context in allNPCcontexts) // winning context is first, root is last
                 {
+                    if (IgnoredPlugins.Contains(context.ModKey))
+                    {
+                        continue;
+                    }
+
                     if (IncludeSourcePlugin == false && context.Record.FormKey.ModKey == context.ModKey)
                     {
-                        success = false;
-                        return (NifStream, DdsStream);
+                        continue;
                     }
 
                     if (state.LinkCache.TryResolve<IRaceGetter>(context.Record.Race.FormKey, out var currentRaceGetter) && !currentRaceGetter.Flags.HasFlag(Race.Flag.FaceGenHead))
@@ -551,7 +560,7 @@ namespace NPCPluginChooser
             return (NifStream, DdsStream);
         }
 
-        public static ModKey getLooseFaceGenMatch(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (MemoryStream, MemoryStream) winnerStreams, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static ModKey getLooseFaceGenMatch(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (MemoryStream, MemoryStream) winnerStreams, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, HashSet<ModKey> ignoredPlugins, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             ModKey winner = new ModKey();
 
@@ -560,6 +569,11 @@ namespace NPCPluginChooser
 
             foreach (var context in allNPCcontexts) // winning context is first, root is last
             {
+                if (ignoredPlugins.Contains(context.ModKey))
+                {
+                    continue;
+                }
+
                 bool meshMatched = false;
                 bool texMatched = false;
 

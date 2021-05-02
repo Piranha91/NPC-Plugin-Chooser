@@ -19,12 +19,23 @@ namespace NPCPluginChooser.Settings
         public Mode Mode { get; set; } = Mode.Deep;
 
         [SynthesisOrder]
-        [SynthesisTooltip("All: a record will be generated for every NPC regardless of conflict status.\nRecordConflictsOnly: Records will only be generated for NPCs with appearance conflicts.")]
+        [SynthesisTooltip("All: A record will be generated for every NPC regardless of conflict status.\nRecordConflictsOnly: Records will only be generated for NPCs with appearance conflicts.")]
         public SettingsGenMode SettingsGenMode { get; set; } = SettingsGenMode.RecordConflictsOnly;
 
         [SynthesisOrder]
         [SynthesisTooltip("LoadOrder: SettingsGen will forward appearance based on winning plugin for that NPC.\nFaceGenOrder: SettingsGen will forward appearance based on winning FaceGen assets for that NPC.")]
         public SettingsGenSelectBy SettingGenChooseBy { get; set; } = SettingsGenSelectBy.LoadOrder;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("The following plugins will be ignored by SettingsGen")]
+        public HashSet<ModKey> SettingsGenIgnoredPlugins { get; set; } = new HashSet<ModKey>()
+        {
+            ModKey.FromNameAndExtension("Skyrim.esm"),
+            ModKey.FromNameAndExtension("Update.esm"),
+            ModKey.FromNameAndExtension("Dawnguard.esm"),
+            ModKey.FromNameAndExtension("HearthFires.esm"),
+            ModKey.FromNameAndExtension("Dragonborn.esm")
+        };
 
         [SynthesisOrder]
         [SynthesisSettingName("Mod Organizer 2\\mods Path")]
