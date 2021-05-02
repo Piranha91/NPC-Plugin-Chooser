@@ -41,7 +41,7 @@ The settings of this patcher appear as follows:
 Mode dictates how the patcher will run. There are three modes in the dropdown menu:
 
 * Simple: intended for trimming either a single NPC mod, or a group of non-overlapping NPC mods, down to the NPCs you select. FaceGen will be grabbed from the conflict winner in your mod order. Setting the **Mod Organizer 2\mods Path** is *not* required for this mode.
-* Deep: intended for compiling a NPCs from a set of overlapping NPCs mods. Setting the **Mod Organizer 2\mods Path** *is* required for this mode. The patcher will scan your mod folders and find where the FaceGen lives for each of the plugins that you choose.
+* Deep: intended for compiling NPCs from a set of overlapping NPC appearance mods. Setting the **Mod Organizer 2\mods Path** *is* required for this mode. The patcher will scan your mod folders and find where the FaceGen lives for each of the plugins that you choose.
 * SettingsGen: Intended for users who already have their own curated NPC appearance list. The patcher will scan your current winning FaceGen for each NPC, find the source of the winning FaceGen, and write that conflict winner to a settings.json file in the output folder. You can then replace the current settings file with the one generated and it will have your current selected NPCs. You can keep a copy as a backup and then start modifying your list as desired. Setting the **Mod Organizer 2\mods Path** *is* required for this mode.
 
 #### SettingsGen Mode
