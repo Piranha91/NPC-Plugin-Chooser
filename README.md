@@ -168,5 +168,6 @@ If checked, the patcher will generate a `merge\merge.json` file containing this 
  * Janquel - for suggesting the name for this patcher
  * DarkladyLexy - for being my first beta tester & making several good suggestions for SettingsGen mode.
  * trawzified - for fixing up the Markdown on this README file.
+ * JollyRoger - for suggesting integration with Merge Plugins Hide.
  * All of the great NPC appearance mod authors that made this patcher necessary - rxkx22 (Bijin series), Pandorable for her eponymous mods, Southpawe (Northbourne series), PoeticAnt44 (Pride of Skyrim), deletepch (Nordic Faces... but please don't delete the PCH; it's beautiful!) and many others! Thank you for making it so hard to choose!
 
