@@ -52,6 +52,14 @@ If **Mode** is set to `SettingsGen`, this setting dictates which NPCs the patche
 
 Note that RecordConflictsOnly will still import NPCs from mods that aren't typically thought of as "appearance-related". Such NPCs include those from Skyrim.esm with new FaceGen provided by Update.esm, Dawnguard.esm, etc., as well as those with "fixed" FaceGen provided by the Unofficial Skyrim Special Edition Patch. If you don't want your generated settings to include NPCs from such mods, add these mods to **SettingsGen Ignored Plugins**.
 
+#### SettingsGen Choose Winner By
+If **Mode** is set to `SettingsGen`, this setting dictates how conflict-winning NPCs are chosen for import.
+
+* LoadOrder: The NPC mod from the winning load order plugin (MO2 right panel) will be forwarded.
+* FaceGenOrder: The NPC mod containing the winning FaceGen files (MO2 left panel) will be forwarded.
+
+Note that LoadOrder mode is considerably faster than FaceGenOrder mode.
+
 #### SettingsGen Ignored Plugins
 If **Mode** is set to `SettingsGen`, NPC appearance edits by the mods in this list will be disregarded when generating your settings. By default it contains the base game + DLC. You may remove any and all plugins from this list if you wish for your generated settings file to include non-modded NPCs.
 
