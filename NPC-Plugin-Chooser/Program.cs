@@ -324,6 +324,7 @@ namespace NPCPluginChooser
                         if (faceGenExists(context.Record.FormKey, context.ModKey, PluginDirectoryDict[context.ModKey], new HashSet<string>(), true, state, out var BSAfiles))
                         {
                             winningPlugin = context.ModKey;
+                            break; // break as soon as facegen-containing NPC is found, since contexts are read winner-to-loser
                         }
                     }
                     break;
