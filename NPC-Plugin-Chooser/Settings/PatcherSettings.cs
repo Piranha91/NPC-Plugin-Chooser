@@ -19,12 +19,14 @@ namespace NPCPluginChooser.Settings
         public Mode Mode { get; set; } = Mode.Deep;
 
         [SynthesisOrder]
+        [SynthesisSettingName("SettingsGen Mode")]
         [SynthesisTooltip("All: A record will be generated for every NPC regardless of conflict status.\nRecordConflictsOnly: Records will only be generated for NPCs with appearance conflicts.")]
         public SettingsGenMode SettingsGenMode { get; set; } = SettingsGenMode.RecordConflictsOnly;
 
         [SynthesisOrder]
+        [SynthesisSettingName("SettingsGen Choose Winner By")]
         [SynthesisTooltip("LoadOrder: SettingsGen will forward appearance based on winning plugin for that NPC.\nFaceGenOrder: SettingsGen will forward appearance based on winning FaceGen assets for that NPC.")]
-        public SettingsGenSelectBy SettingGenChooseBy { get; set; } = SettingsGenSelectBy.LoadOrder;
+        public SettingsGenSelectBy SettingsGenChooseBy { get; set; } = SettingsGenSelectBy.LoadOrder;
 
         [SynthesisOrder]
         [SynthesisTooltip("The following plugins will be ignored by SettingsGen")]

@@ -289,7 +289,7 @@ namespace NPCPluginChooser
                 includeSourcePlugin = false;
             }
 
-            switch (settings.SettingGenChooseBy)
+            switch (settings.SettingsGenChooseBy)
             {
                 case SettingsGenSelectBy.FaceGenOrder:
                     var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, includeSourcePlugin, settings.SettingsGenIgnoredPlugins, state, out bool hasFaceGen, out var winningBSAPlugin);
