@@ -29,6 +29,7 @@ namespace NPCPluginChooser.Settings
         public SettingsGenSelectBy SettingsGenChooseBy { get; set; } = SettingsGenSelectBy.LoadOrder;
 
         [SynthesisOrder]
+        [SynthesisSettingName("SettingsGen Ignored Plugins")]
         [SynthesisTooltip("The following plugins will be ignored by SettingsGen")]
         public HashSet<ModKey> SettingsGenIgnoredPlugins { get; set; } = new HashSet<ModKey>()
         {
