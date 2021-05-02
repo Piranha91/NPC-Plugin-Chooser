@@ -44,11 +44,19 @@ Mode dictates how the patcher will run. There are three modes in the dropdown me
 * Deep: intended for compiling a NPCs from a set of overlapping NPCs mods. Setting the **Mod Organizer 2\mods Path** *is* required for this mode. The patcher will scan your mod folders and find where the FaceGen lives for each of the plugins that you choose.
 * SettingsGen: Intended for users who already have their own curated NPC appearance list. The patcher will scan your current winning FaceGen for each NPC, find the source of the winning FaceGen, and write that conflict winner to a settings.json file in the output folder. You can then replace the current settings file with the one generated and it will have your current selected NPCs. You can keep a copy as a backup and then start modifying your list as desired. Setting the **Mod Organizer 2\mods Path** *is* required for this mode.
 
+#### SettingsGen Mode
+If **Mode** is set to `SettingsGen`, this setting dictates which NPCs the patcher will import into the settings file that it creates.
+
+* All: Every NPC in your load order will be imported into the generated settings (unless blocked by **SettingsGen Ignored Plugins**).
+* RecordConflictsOnly: Only NPCs that have modded faces will be imported into the generated settings.
+
+Note that RecordConflictsOnly will still import NPCs from mods that aren't typically thought of as "appearance-related". Such NPCs include those from Skyrim.esm with new FaceGen provided by Update.esm, Dawnguard.esm, etc., as well as those with "fixed" FaceGen provided by the Unofficial Skyrim Special Edition Patch. If you don't want your generated settings to include NPCs from such mods, add these mods to **SettingsGen Ignored Plugins**.
+
+#### SettingsGen Ignored Plugins
+If **Mode** is set to `SettingsGen`, NPC appearance edits by the mods in this list will be disregarded when generating your settings. By default it contains the base game + DLC. You may remove any and all plugins from this list if you wish for your generated settings file to include non-modded NPCs.
+
 #### Mod Organizer 2\mods Path
 This setting tells the patcher where your mods folder is. Required for **Deep** and **SettingsGen** modes but not for **Simple** mode.
-
-#### Game Directory
-This setting tells the patcher where your base game lives. It is only required to fill this out if you are planning to forward the vanilla appearance of an NPC. Otherwise it can be left blank.
 
 #### Asset Output Directory
 The folder to which the patcher will output FaceGen (and optionally additional NPC-related textures and meshes). Recommended to be a folder within MO2\mods so that you can simply activate it in the left panel at the bottom of your mod list and overwrite all other FaceGen with the result.
@@ -67,9 +75,6 @@ If checked, *and* if **Forward Conflict Winner Data** is checked, outfits will b
 
 #### Handle BSA files during patching
 If checked, the patcher will extract FaceGen (and optionally additional meshes and textures for the chosen NPCs) from BSA archives that reference the chosen mod. Make sure to check this if you are forwarding NPC appearance from mods that contain BSA archives. Note: this is a heavy operation and it can double the time needed to run the patcher.
-
-#### Handle BSA files during settings generation
-If checked, the patcher will compare FaceGen from BSA archives that reference the chosen mod when in **SettingsGen** mode. Make sure to check this if you are forwarding NPC appearance from mods that contain BSA archives. 
 
 #### Copy Extra Assets
 If checked, the patcher will copy non-FaceGen-related meshes and textures for the NPCs being forwarded, so that the resulting output folder can be used as a standalone mod. If unchecked, only FaceGen will be forwarded to the output folder.
@@ -90,7 +95,12 @@ If checked, the patcher will not warn of files that it expected to find in the *
 Some NPC appearance plugins reference meshes and textures that aren't distributed with the mod itself, and are not required for the mod to look correct. For example, the Bijin series references `.tri` files that aren't distributed with the mod. If checked, the patcher will compare all files that it expects to find and can't against a list located in Warnings To Suppress.json and skip warning the user if the file is in that list. That file was made based on my own load order; you may want to edit it as required by yours. Please contact me with additional submissions for this list.
 
 #### Plugins Excluded from Merge
-After forwarding an NPC's record to the output patch, the patcher will also forward additional immediate dependency records (head parts, worn armor, face textures, etc.) - forwarding such records from the base game is both unnecessary and causes the patcher to stall. It is recommended not to edit this list, but it has been made accessible in case you encounter issues merging dependencies from a particular plugin.
+After forwarding an NPC's record to the output patch, the patcher will also forward additional immediate dependency records (head parts, worn armor, face textures, etc.) - forwarding such records from the base game is both unnecessary and causes the patcher to stall. It is recommended not to edit this list, but it has been made accessible in case you encounter issues merging dependencies from a particular plugin. Such issues would appear as the following error during patching:
+
+```
+Remapping Dependencies from Mod.esp
+System.Collections.Generic.KeyNotFoundException: Could not locate record to make self contained: (Mutagen.Bethesda.Skyrim.ISkyrimMajorRecordGetter) => xxxxxx:Mod.esp
+```
 
 ### Plugins to Forward
 To select which NPCs from which plugin you wish to forward to the output patch, click **Plugins To Forward** in the main menu. You will be taken to the NPC selection menu, which appears as follows:
@@ -107,8 +117,11 @@ Select the plugin which contains the NPC appearance that you wish to forward. Be
 #### NPCs
 The list of NPCs whose appearance you wish to forward from the chosen plugin. To add an NPC, type its EditorID into the **EditorID** box, or its Synthesis FormKey into the **FormKey** box. A Synthesis FormKey consists of `Last6CharactersOfFormID:PluginName.esp` - note that the file extension might also end in `.esl` or `.esm`. NPCs are searchable by EditorID but if the NPC doesn't have an EditorID or if there is more than one NPC with that EditorID, you will need to specify its FormKey. The list of chosen NPCs will appear in the **Added Records** box. Chosen **NPCs** that are not in the chosen **Plugin** will be ignored.
 
+#### Select All
+If checked, every NPC from the chosen **Plugin** will be forwarded. The **NPCs** list will be ignored if this setting is checked.
+
 #### Invert Selection
-If checked, all **NPCs** from the chosen **Plugin** *except for* the specified **NPCs** will be forwarded. To quickly select all NPCs from a plugin, choose that **Plugin**, do not select any **NPCs**, and check the **Invert Selection** box.
+If checked, all **NPCs** from the chosen **Plugin** *except for* the specified **NPCs** will be forwarded.
 
 #### Forced Asset Directory
 If not blank, the patcher will look in this directory *instead of* the plugin's directory in MO2\mods for FaceGen and Extra Assets. Useful if the source plugin and meshes/textures live in separate folders.
@@ -118,6 +131,9 @@ Extra directories that the patcher will look in trying to copy Extra Assets. To 
 
 #### Find Extra Textures In Nifs
 Only relevant if **Copy Extra Assets** is checked. In some mods, the plugin does not reference all of the textures used by the NPC - instead, some textures can only be found by looking into the .nif files. If checked, the patcher will look into the NPC's referenced .nif files (including the FaceGen Nif) and and forward the additional textures that it finds if they exist within the NPC's mod folder. Some appearance mods work this way (for example Bijin and Pandorable) while others such as the Northbourne series do not. It is recommended to leave this setting enabled, but due to the extra patching time required it has been made accessible per-plugin so that it can be skipped for mods known not to require it.
+
+#### Add to merge.json
+If checked, the patcher will generate a `merge\merge.json` file containing this **Plugin**. This file can be read by [Merge Plugins Hide](https://github.com/deorder/mo2-plugins/releases) to quickly hide or unhide all **Plugin**s forwarded into the generated appearance patch. This setting is ignored for base game and official DLC plugins.
 
 ## FAQ
 **Why doesn't the .exe file have a UI like the Synthesis patcher? Why do I need to copy settings between them?**
@@ -142,7 +158,7 @@ Only relevant if **Copy Extra Assets** is checked. In some mods, the plugin does
  * Noggog - creator of Synthesis who very patiently helped me learn how to make patchers, and did not rip my head off when I incessantly requested new features for both the UI and under the hood
  * SteveTownsend - for helping me learn how to use Synthesis to handle BSA archives, and for creating the package I needed to get additional textures from Nifs (and indeed for writing the function to do it).
  * Janquel - for suggesting the name for this patcher
- * DarkladyLexy - for being my first beta tester
+ * DarkladyLexy - for being my first beta tester & making several good suggestions for SettingsGen mode.
  * trawzified - for fixing up the Markdown on this README file.
  * All of the great NPC appearance mod authors that made this patcher necessary - rxkx22 (Bijin series), Pandorable for her eponymous mods, Southpawe (Northbourne series), PoeticAnt44 (Pride of Skyrim), deletepch (Nordic Faces... but please don't delete the PCH; it's beautiful!) and many others! Thank you for making it so hard to choose!
 
