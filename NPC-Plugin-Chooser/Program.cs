@@ -51,6 +51,11 @@ namespace NPCPluginChooser
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
+            if (!state.LinkCache.TryResolveContext(FormKey.Factory("037C1D:Cutting Room Floor.esp"), typeof(ISkyrimMajorRecordGetter), out var edid))
+            {
+                Console.WriteLine("Oh no");
+            }
+
             PatcherSettings settings = Settings.Value;
 
             PatcherSettings outputSettings = new PatcherSettings(); // only used if Mode == SettingsGen
