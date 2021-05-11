@@ -3,6 +3,9 @@
 ## Overview
 This patcher forwards the appearance of NPCs specified by the user. It copies the chosen NPCs' records into the plugin it builds, forwards their FaceGen to a chosen output directory, and (optionally) forwards the other meshes and textures required for that NPC to the output directory. It is currently built for MO2. Vortex support may come in the future.
 
+### You may run N.P.C. as a Synthesis Patcher, OR as a standalone program using the provided .exe
+Pros and cons of each approach are discussed below.
+
 ## Installation
 Extract the downloaded folder to your drive. I prefer `Mod Organizer 2\tools`. Add `NPC-Plugin-Chooser.exe` as an executable in MO2. At this time, the .exe does not have a user interface built in. Instead, you will need to add the patcher to Synthesis as a Git Repository and run Synthesis (**through MO2**). This will be updated as soon as Synthesis supports exporting patchers with UI. In the meantime, add the patcher to Synthesis by clicking "Git Repository" in the top left corner -> Input tab -> Repository Path = https://github.com/Piranha91/NPC-Plugin-Chooser. Choose the only available project from the Project dropdown menu and click the blue circle in the bottom right corner. Configure the settings from the patcher's settings menu and then either copy the settings to where the .exe is expecting them, or run the patcher directly through Synthesis. **Note: it is expected that you run the patcher through MO2, either via Synthesis or directly as the .exe.**
 
