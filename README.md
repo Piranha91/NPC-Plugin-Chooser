@@ -16,7 +16,7 @@ Configure the settings in Synthesis to reflect your preferences. Then, you will 
 
 Now, you should have a settings.json file in your `Synthesis\Data\NPC-Plugin-Chooser` folder. Copy that file to `NPC 1.x\Data`, replacing the settings.json file that already exists there. Then you can add the patcher as an executable in MO2 and run it. 
 
-### Using N.P.C. as a Synthesis Patcher vs. the standalone .exe: Pros and cons of each approach
+### Using N.P.C. as a Synthesis Patcher vs. Running the standalone .exe: pros and cons of each approach
 
 #### Running standalone executable
 
