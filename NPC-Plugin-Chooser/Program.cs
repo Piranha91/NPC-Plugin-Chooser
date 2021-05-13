@@ -140,11 +140,12 @@ namespace NPCPluginChooser
                     {
                         foreach (var npc in currentModContext.Mod.Npcs)
                         {
+                            bool isTemplated = NPCisTemplated(npc);
                             if (PPS.SelectAll || (PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
                             {
                                 string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
                                 Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
-                                if (faceGenExists(npc.FormKey, currentModContext.ModKey, currentDataDir, PPS.ExtraDataDirectories, settings.HandleBSAFiles_Patching, state, out var BSAfiles) == false)
+                                if (!isTemplated && faceGenExists(npc.FormKey, currentModContext.ModKey, currentDataDir, PPS.ExtraDataDirectories, settings.HandleBSAFiles_Patching, state, out var BSAfiles) == false)
                                 {
                                     if (settings.AbortIfMissingFaceGen)
                                     {
@@ -157,7 +158,7 @@ namespace NPCPluginChooser
                                 }
 
                                 var NPCoverride = addNPCtoPatch(npc, settings, state);
-                                copyAssets(NPCoverride, currentModContext.ModKey, settings, currentDataDir, PPS, state);
+                                copyAssets(NPCoverride, currentModContext.ModKey, settings, currentDataDir, PPS, isTemplated, state);
                             }
                         }
                     }
@@ -360,6 +361,20 @@ namespace NPCPluginChooser
             }
 
             return true;
+        }
+
+        public static bool NPCisTemplated(INpcGetter? npc)
+        {
+            if (npc == null) { return false; }
+
+            bool templated = false;
+
+            if (npc.Template.IsNull == false && npc.Configuration.TemplateFlags.HasFlag(NpcConfiguration.TemplateFlag.Traits))
+            {
+                templated = true;
+            }
+
+            return templated;
         }
 
         public static bool faceGenExists(FormKey NPCFormKey, ModKey currentModKey, string rootPath, HashSet<string> extraDataPaths, bool handleBSAFiles, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out (IArchiveFile?, IArchiveFile?) BSAFiles)
@@ -840,16 +855,18 @@ namespace NPCPluginChooser
             return PluginDirectoryDict;
         }
 
-        public static void copyAssets(Npc npc, ModKey NPCModKey, PatcherSettings settings, string currentModDirectory, PerPluginSettings PPS, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void copyAssets(Npc npc, ModKey NPCModKey, PatcherSettings settings, string currentModDirectory, PerPluginSettings PPS, bool isTemplated, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             HashSet<string> meshes = new HashSet<string>();
             HashSet<string> textures = new HashSet<string>();
 
             //FaceGen
-            var FaceGenSubPaths = getFaceGenSubPathStrings(npc.FormKey);
-            meshes.Add(FaceGenSubPaths.Item1);
-            textures.Add(FaceGenSubPaths.Item2);
-
+            if (isTemplated == false)
+            {
+                var FaceGenSubPaths = getFaceGenSubPathStrings(npc.FormKey);
+                meshes.Add(FaceGenSubPaths.Item1);
+                textures.Add(FaceGenSubPaths.Item2);
+            }
             if (settings.CopyExtraAssets)
             {
                 getAssetsReferencedByplugin(npc, settings, meshes, textures, state);
