@@ -6,12 +6,16 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using System.Threading.Tasks;
 using System.IO;
+using Mutagen.Bethesda.Archives;
 using NPCPluginChooser.Settings;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Converters;
 using Noggog.Utility;
 using Mutagen.Bethesda.Json;
+using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Cache;
+using Noggog;
 
 namespace NPCPluginChooser
 {
@@ -535,14 +539,14 @@ namespace NPCPluginChooser
 
                     if (meshFound == false && BSAHandler.HaveFile(BSAmeshPath, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
                     {
-                        archiveMeshFile.CopyDataTo(NifStream);
+                        archiveMeshFile.AsStream().CopyTo(NifStream);
                         meshFound = true;
                         NifBSAWinner = context.ModKey;
                     }
 
                     if (texFound == false && BSAHandler.HaveFile(BSAtexPath, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
                     {
-                        archiveTexFile.CopyDataTo(DdsStream);
+                        archiveTexFile.AsStream().CopyTo(DdsStream);
                         texFound = true;
                         DdsBSAWinner = context.ModKey;
                     }

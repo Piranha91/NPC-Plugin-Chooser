@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Noggog;
 using Mutagen.Bethesda.Synthesis.Settings;
 using Mutagen.Bethesda;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

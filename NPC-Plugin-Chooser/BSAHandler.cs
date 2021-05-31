@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Mutagen.Bethesda;
 using System.IO;
+using Mutagen.Bethesda.Archives;
+using Mutagen.Bethesda.Plugins;
 
 namespace NPCPluginChooser
 {
@@ -48,7 +50,7 @@ namespace NPCPluginChooser
                 try
                 {
                     var fileStream = File.Create(destPath);
-                    file.CopyDataTo(fileStream);
+                    file.AsStream().CopyTo(fileStream);
                 }
                 catch
                 {
