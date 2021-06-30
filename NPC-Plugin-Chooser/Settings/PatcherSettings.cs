@@ -9,6 +9,7 @@ using Mutagen.Bethesda;
 using Mutagen.Bethesda.Skyrim;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Mutagen.Bethesda.Plugins; // for formkey, modkey classes
 
 namespace NPCPluginChooser.Settings
 {

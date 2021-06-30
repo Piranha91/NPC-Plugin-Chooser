@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Mutagen.Bethesda;
 using System.IO;
+using Mutagen.Bethesda.Plugins; // for formkey, modkey classes
+using Mutagen.Bethesda.Archives; // for bsa handling
 
 namespace NPCPluginChooser
 {
