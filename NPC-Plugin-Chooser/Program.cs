@@ -53,6 +53,12 @@ namespace NPCPluginChooser
         {
             PatcherSettings settings = Settings.Value;
 
+            //autodetect game dir if necessary
+            if (settings.GameDataPath.Trim() == "")
+            {
+                settings.GameDataPath = state.DataFolderPath;
+            }
+
             PatcherSettings outputSettings = new PatcherSettings(); // only used if Mode == SettingsGen
 
             Dictionary<ModKey, string> PluginDirectoryDict = initPluginDirectoryDict(settings, state);
@@ -293,7 +299,7 @@ namespace NPCPluginChooser
             switch (settings.SettingsGenChooseBy)
             {
                 case SettingsGenSelectBy.FaceGenOrder:
-                    var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, includeSourcePlugin, settings.SettingsGenIgnoredPlugins, state, out bool hasFaceGen, out var winningBSAPlugin);
+                    var winnerFaceGenStreams = getFaceGenWinnerStreams(contexts, FaceGenSubPaths, PluginDirectoryDict, includeSourcePlugin, settings.SettingsGenIgnoredPlugins, state, out bool hasFaceGen, out var winningBSAPlugin, settings);
                     if (hasFaceGen == false)
                     {
                         return false;
@@ -472,7 +478,7 @@ namespace NPCPluginChooser
             return true;
         }
 
-        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, bool IncludeSourcePlugin, HashSet<ModKey> IgnoredPlugins, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner)
+        public static (MemoryStream, MemoryStream) getFaceGenWinnerStreams(List<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, (string, string) FaceGenSubPaths, Dictionary<ModKey, string> PluginDirectoryDict, bool IncludeSourcePlugin, HashSet<ModKey> IgnoredPlugins, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, out bool success, out ModKey? BSAwinner, PatcherSettings settings)
         {
             success = true;
             BSAwinner = null; // if the winning FaceGen is in a BSA, no need for the calling function to waste time looking for it - just report the calling ModKey here
@@ -485,8 +491,8 @@ namespace NPCPluginChooser
 
             // check for loose file in data path first.
 
-            string winnerMeshPath = Path.Combine(state.DataFolderPath, "meshes", FaceGenSubPaths.Item1);
-            string winnerTexPath = Path.Combine(state.DataFolderPath, "textures", FaceGenSubPaths.Item2);
+            string winnerMeshPath = Path.Combine(settings.GameDataPath, "meshes", FaceGenSubPaths.Item1);
+            string winnerTexPath = Path.Combine(settings.GameDataPath, "textures", FaceGenSubPaths.Item2);
 
             bool meshFound = false;
             bool texFound = false;
@@ -647,63 +653,6 @@ namespace NPCPluginChooser
             return msArray1.SequenceEqual(msArray2);
         }
 
-        /*
-        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> currentNPCcontext, IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, string currentModDir, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
-        {
-            var FaceGenSubPaths = getFaceGenSubPathStrings(currentNPCcontext.Record.FormKey);
-
-            string modMeshPath = Path.Combine(currentModDir, "meshes", FaceGenSubPaths.Item1);
-
-            MemoryStream currentStream = new MemoryStream();
-            FileStream winnerStream;
-
-            HashSet<IArchiveReader> readers_currentMod = new HashSet<IArchiveReader>();
-
-            readers_currentMod = BSAHandler.openBSAArchiveReaders(currentModDir, currentNPCcontext.ModKey);
-
-            // get current mod mesh
-            if (File.Exists(modMeshPath))
-            {
-                var mFile = File.Open(modMeshPath, FileMode.Open);
-                mFile.CopyTo(currentStream);
-            }
-            else if (BSAHandler.HaveFile(modMeshPath, readers_currentMod, out var archiveMeshFile) && archiveMeshFile != null)
-            {
-                archiveMeshFile.CopyDataTo(currentStream);
-            }
-            else
-            {
-                return false;
-            }
-
-
-            string winnerMeshPath = Path.Combine(state.DataFolderPath, "meshes", FaceGenSubPaths.Item1); 
-
-
-            if (FileComparison.FilesAreEqual(modMeshPath, winnerMeshPath) == false) 
-            {
-                return false;
-            }
-
-            string modTexPath = Path.Combine(currentModDir, "textures", FaceGenSubPaths.Item2); 
-            
-            if (File.Exists(modTexPath) == false && BSAHandler.HaveFile(modTexPath, readers_currentMod, out var archiveTexFile) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
-            {
-                return false;
-            }
-
-            string winnerTexPath = Path.Combine(state.DataFolderPath, "textures", FaceGenSubPaths.Item2);
-
-            if (FileComparison.FilesAreEqual(modTexPath, winnerTexPath) == false)
-            {
-                return false;
-            }
-
-            return true;
-        }
-        */
-
-
         public static void getWarningsToSuppress(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             string settingsPath = Path.Combine(state.ExtraSettingsDataPath, "Warnings To Suppress.json");
@@ -782,7 +731,7 @@ namespace NPCPluginChooser
 
                     if (settings.BaseGamePlugins.Contains(mk))
                     {
-                        PluginDirectoryDict.Add(mk, state.DataFolderPath);
+                        PluginDirectoryDict.Add(mk, settings.GameDataPath);
                         continue;
                     }
 
@@ -824,7 +773,7 @@ namespace NPCPluginChooser
                                 }
                                 if (settings.BaseGamePlugins.Contains(PPS.Plugin))
                                 {
-                                    PluginDirectoryDict.Add(PPS.Plugin, state.DataFolderPath);
+                                    PluginDirectoryDict.Add(PPS.Plugin, settings.GameDataPath);
                                     break;
                                 }
 
@@ -846,7 +795,7 @@ namespace NPCPluginChooser
                                 break;
 
                             case Mode.Simple:
-                                PluginDirectoryDict.Add(PPS.Plugin, state.DataFolderPath);
+                                PluginDirectoryDict.Add(PPS.Plugin, settings.GameDataPath);
                                 break;
                         }
                     }
@@ -916,8 +865,8 @@ namespace NPCPluginChooser
             var warningsToSuppress = new HashSet<string>(settings.warningsToSuppress_Global.Paths);
             if (warningsToSuppressList.Any()) { warningsToSuppress = warningsToSuppressList.First().Paths; }
 
-            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress, state.DataFolderPath);
-            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress, state.DataFolderPath);
+            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress, settings.GameDataPath);
+            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress, settings.GameDataPath);
         }
 
         public static void getExtraTexturesFromNif(HashSet<string> NifPaths, string NifDirectory, HashSet<string> outputTextures, HashSet<string> ignoredTextures)

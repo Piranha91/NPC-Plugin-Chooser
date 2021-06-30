@@ -41,6 +41,11 @@ namespace NPCPluginChooser.Settings
         };
 
         [SynthesisOrder]
+        [SynthesisSettingName("Skyrim\\Data Path")]
+        [SynthesisTooltip("Path of your Skyrim\\Data folder. Can be left blank to auto-detect.")]
+        public string GameDataPath { get; set; } = "";
+
+        [SynthesisOrder]
         [SynthesisSettingName("Mod Organizer 2\\mods Path")]
         [SynthesisTooltip("Path of your MO2\\mods folder. Can be left blank if using Simple Mode.")]
         public string MO2DataPath { get; set; } = "";
