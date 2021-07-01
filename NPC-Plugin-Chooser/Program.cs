@@ -43,10 +43,11 @@ namespace NPCPluginChooser
                 throw new Exception("Cannot find output directory specified in settings: " + settings.AssetOutputDirectory);
             }
 
+            /* This condition always triggers for some reason even if Mode = Mode.Simple. Will try to fix later.
             if (settings.Mode != Mode.Simple && settings.MO2DataPath == "")
             {
                 throw new Exception("MO2 Data Path must be set for any mode other than Simple.");
-            }
+            }*/
 
             if (settings.MO2DataPath != "" && !Directory.Exists(settings.MO2DataPath))
             {
