@@ -31,7 +31,7 @@ namespace NPCPluginChooser
                     out Settings)
                 .AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
                 .SetTypicalOpen(GameRelease.SkyrimSE, "NPC Appearance.esp")
-                .AddRunnabilityCheck(CanRunPatch)
+                //.AddRunnabilityCheck(CanRunPatch)
                 .Run(args);
         }
 
