@@ -48,13 +48,16 @@ namespace NPCPluginChooser
                 throw new Exception("Cannot find the Mod Organizer 2 Mods folder specified in settings: " + settings.MO2DataPath);
             }
 
-            if (settings.GameDataPath != "" && !Directory.Exists(settings.GameDataPath))
+            if (settings.GameDataPath != "")
             {
-                throw new Exception("Cannot find the Skyrim\\Data folder specified in settings: " + settings.GameDataPath);
-            }
-            else if (File.Exists(Path.Combine(settings.GameDataPath, "Skyrim.esm")) == false)
-            {
-                throw new Exception("Could not find Skyrim.esm in " + settings.GameDataPath + ". Are you sure you entered the path correctly?");
+                if (!Directory.Exists(settings.GameDataPath))
+                {
+                    throw new Exception("Cannot find the Skyrim\\Data folder specified in settings: " + settings.GameDataPath);
+                }
+                else if (File.Exists(Path.Combine(settings.GameDataPath, "Skyrim.esm")) == false)
+                {
+                    throw new Exception("Could not find Skyrim.esm in " + settings.GameDataPath + ". Are you sure you entered the path correctly?");
+                }
             }
         }
 
