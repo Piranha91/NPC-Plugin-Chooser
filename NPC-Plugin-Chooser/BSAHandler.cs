@@ -49,8 +49,8 @@ namespace NPCPluginChooser
                 }
                 try
                 {
-                    var fileStream = File.Create(destPath);
-                    file.CopyDataTo(fileStream);
+                    using var fileStream = File.Create(destPath);
+                    file.AsStream().CopyTo(fileStream);
                 }
                 catch
                 {
