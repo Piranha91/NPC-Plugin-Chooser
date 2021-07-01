@@ -15,6 +15,7 @@ using Mutagen.Bethesda.Json;
 using Mutagen.Bethesda.Plugins; // for formkey, modkey classes
 using Mutagen.Bethesda.Plugins.Cache; ///for iModContext
 using Mutagen.Bethesda.Archives; // for bsa handling
+using Noggog;
 
 namespace NPCPluginChooser
 {
@@ -544,14 +545,14 @@ namespace NPCPluginChooser
 
                     if (meshFound == false && BSAHandler.HaveFile(BSAmeshPath, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
                     {
-                        archiveMeshFile.CopyDataTo(NifStream);
+                        archiveMeshFile.AsStream().CopyTo(NifStream);
                         meshFound = true;
                         NifBSAWinner = context.ModKey;
                     }
 
                     if (texFound == false && BSAHandler.HaveFile(BSAtexPath, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
                     {
-                        archiveTexFile.CopyDataTo(DdsStream);
+                        archiveTexFile.AsStream().CopyTo(DdsStream);
                         texFound = true;
                         DdsBSAWinner = context.ModKey;
                     }
