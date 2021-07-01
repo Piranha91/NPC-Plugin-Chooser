@@ -15,6 +15,7 @@ using Mutagen.Bethesda.Json;
 using Mutagen.Bethesda.Plugins; // for formkey, modkey classes
 using Mutagen.Bethesda.Plugins.Cache; ///for iModContext
 using Mutagen.Bethesda.Archives; // for bsa handling
+using Noggog;
 
 namespace NPCPluginChooser
 {
