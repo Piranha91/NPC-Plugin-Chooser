@@ -211,10 +211,18 @@ namespace NPCPluginChooser
                     else
                     {
                         Console.WriteLine("The current load order does not contain {0}", PPS.Plugin.ToString());
+                        Console.WriteLine("The source Plugins.txt was found at {0}", state.LoadOrderFilePath);
                         Console.WriteLine("For your reference, the current load order as it appears to this patcher is: ");
                         foreach (var mod in state.LoadOrder)
                         {
-                            Console.WriteLine(mod.Key.ToString());
+                            if (mod.Value.Mod == null)
+                            {
+                                Console.WriteLine("NOT {0}: plugin was listed in Plugins.txt but not found in your Data folder.", mod.Key.ToString());
+                            }
+                            else
+                            {
+                                Console.WriteLine(mod.Key.ToString());
+                            }
                         }
 
                         Console.ReadKey();
