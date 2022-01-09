@@ -217,7 +217,7 @@ namespace NPCPluginChooser
                             Console.WriteLine(mod.Key.ToString());
                         }
 
-                        throw new Exception();
+                        Console.ReadKey();
                     }
 
                     //remap dependencies
