@@ -12,10 +12,6 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Converters;
 using Noggog.Utility;
 using Mutagen.Bethesda.Json;
-using Mutagen.Bethesda.Plugins; // for formkey, modkey classes
-using Mutagen.Bethesda.Plugins.Cache; ///for iModContext
-using Mutagen.Bethesda.Archives; // for bsa handling
-using Noggog;
 
 namespace NPCPluginChooser
 {
@@ -31,7 +27,6 @@ namespace NPCPluginChooser
                     out Settings)
                 .AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
                 .SetTypicalOpen(GameRelease.SkyrimSE, "NPC Appearance.esp")
-                //.AddRunnabilityCheck(CanRunPatch)
                 .Run(args);
         }
 
@@ -43,33 +38,65 @@ namespace NPCPluginChooser
                 throw new Exception("Cannot find output directory specified in settings: " + settings.AssetOutputDirectory);
             }
 
+            if (settings.Mode != Mode.Simple && settings.MO2DataPath == "")
+            {
+                throw new Exception("MO2 Data Path must be set for any mode other than Simple.");
+            }
+
             if (settings.MO2DataPath != "" && !Directory.Exists(settings.MO2DataPath))
             {
                 throw new Exception("Cannot find the Mod Organizer 2 Mods folder specified in settings: " + settings.MO2DataPath);
             }
+        }
 
-            if (settings.GameDataPath != "")
+        public class FileCopyLog
+        {
+            public string Source { get; set; }
+            public string Destination { get; set; }
+            public string BSApath { get; set; }
+        }
+
+        public class FileOperationLog
+        {
+            public FileOperationLog()
             {
-                if (!Directory.Exists(settings.GameDataPath))
-                {
-                    throw new Exception("Cannot find the Skyrim\\Data folder specified in settings: " + settings.GameDataPath);
-                }
-                else if (File.Exists(Path.Combine(settings.GameDataPath, "Skyrim.esm")) == false)
-                {
-                    throw new Exception("Could not find Skyrim.esm in " + settings.GameDataPath + ". Are you sure you entered the path correctly?");
-                }
+                CopyLog = new List<FileCopyLog>();
+                Misc = new List<string>();
             }
+            public List<FileCopyLog> CopyLog { get; set; }
+            public List<string> Misc { get; set; }
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            PatcherSettings settings = Settings.Value;
-
-            //autodetect game dir if necessary
-            if (settings.GameDataPath.Trim() == "")
+            FileOperationLog FileCopyOperations = new FileOperationLog();
+            // get the BothHand equipment type
+            FormKey eitherHandEquipType;
+            FormKey RightHandEquipType;
+            if (FormKey.TryFactory("013F44:Skyrim.esm", out eitherHandEquipType) && FormKey.TryFactory("013F42:Skyrim.esm", out RightHandEquipType)) // this is from the FormID that I found in SSEedit
             {
-                settings.GameDataPath = state.DataFolderPath;
+                // should never be false if Synthesis detect Skyrim, unless Bethesda changes the FormID of the EquipType for some reason
+                foreach (var weap in state.LoadOrder.PriorityOrder.Weapon().WinningOverrides()) // go through all the weapons in the load order
+                {
+                    Console.WriteLine("I was able to load {0}", weap.Name);
+                    if (!weap.EquipmentType.Equals(eitherHandEquipType) && weap.EquipmentType.Equals(RightHandEquipType)) // if the weapon is already bothhanded, ignore it
+                    {
+                        var weaponOverride = state.PatchMod.Weapons.GetOrAddAsOverride(weap); // if the weapon is not already bothhanded, add it to the patch
+                        weaponOverride.EquipmentType.SetTo(eitherHandEquipType); // set the equip type of the new override to Either Hand
+                        Console.WriteLine("I'm supposed to edit this weapon");
+                    }
+                    else
+                    {
+                        Console.WriteLine("I'm not supposed to edit this weapon");
+                    }
+                }
             }
+            else
+            {
+                Console.WriteLine("Couldn't find one of the requested FormKeys");
+            }
+
+            PatcherSettings settings = Settings.Value;
 
             PatcherSettings outputSettings = new PatcherSettings(); // only used if Mode == SettingsGen
 
@@ -176,7 +203,7 @@ namespace NPCPluginChooser
                                 }
 
                                 var NPCoverride = addNPCtoPatch(npc, settings, state);
-                                copyAssets(NPCoverride, currentModContext.ModKey, settings, currentDataDir, PPS, isTemplated, state);
+                                copyAssets(NPCoverride, currentModContext.ModKey, settings, currentDataDir, PPS, isTemplated, state, FileCopyOperations);
                             }
                         }
                     }
@@ -201,6 +228,11 @@ namespace NPCPluginChooser
                 if (mergeJSONlist.Any())
                 {
                     createJsonMergeFile(mergeJSONlist, settings, state);
+                }
+
+                if (settings.VerboseFileLog)
+                {
+                    WriteFileLog(FileCopyOperations);
                 }
             }
         }
@@ -399,7 +431,7 @@ namespace NPCPluginChooser
         {
             var FaceGenSubPaths = getFaceGenSubPathStrings(NPCFormKey);
 
-            var BSAreaders = new HashSet<IArchiveReader>();
+            var BSAreaders = new List<PathedArchiveReader>();
             if (handleBSAFiles)
             {
                 BSAreaders = BSAHandler.openBSAArchiveReaders(rootPath, currentModKey);
@@ -419,7 +451,7 @@ namespace NPCPluginChooser
                 {
                     foreach (var reader in BSAreaders)
                     {
-                        if (BSAHandler.TryGetFile(Path.Combine("meshes", FaceGenSubPaths.Item1), reader, out var nifFile))
+                        if (BSAHandler.TryGetFile(Path.Combine("meshes", FaceGenSubPaths.Item1), reader.Reader, out var nifFile))
                         {
                             bNifExists = true;
                             BSAFiles.Item1 = nifFile;
@@ -459,7 +491,7 @@ namespace NPCPluginChooser
                 {
                     foreach (var reader in BSAreaders)
                     {
-                        if (BSAHandler.TryGetFile(Path.Combine("textures", FaceGenSubPaths.Item2), reader, out var DdsFile))
+                        if (BSAHandler.TryGetFile(Path.Combine("textures", FaceGenSubPaths.Item2), reader.Reader, out var DdsFile))
                         {
                             bDdsExists = true;
                             BSAFiles.Item2 = DdsFile;
@@ -551,16 +583,16 @@ namespace NPCPluginChooser
 
                     var currentContextReaders = BSAHandler.openBSAArchiveReaders(PluginDirectoryDict[context.ModKey], context.ModKey);
 
-                    if (meshFound == false && BSAHandler.HaveFile(BSAmeshPath, currentContextReaders, out var archiveMeshFile) && archiveMeshFile != null)
+                    if (meshFound == false && BSAHandler.HaveFile(BSAmeshPath, currentContextReaders.Select(x => x.Reader).ToHashSet(), out var archiveMeshFile) && archiveMeshFile != null)
                     {
-                        archiveMeshFile.AsStream().CopyTo(NifStream);
+                        archiveMeshFile.CopyDataTo(NifStream);
                         meshFound = true;
                         NifBSAWinner = context.ModKey;
                     }
 
-                    if (texFound == false && BSAHandler.HaveFile(BSAtexPath, currentContextReaders, out var archiveTexFile) && archiveTexFile != null)
+                    if (texFound == false && BSAHandler.HaveFile(BSAtexPath, currentContextReaders.Select(x => x.Reader).ToHashSet(), out var archiveTexFile) && archiveTexFile != null)
                     {
-                        archiveTexFile.AsStream().CopyTo(DdsStream);
+                        archiveTexFile.CopyDataTo(DdsStream);
                         texFound = true;
                         DdsBSAWinner = context.ModKey;
                     }
@@ -664,6 +696,63 @@ namespace NPCPluginChooser
 
             return msArray1.SequenceEqual(msArray2);
         }
+
+        /*
+        public static bool checkFaceGenMatch(IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter> currentNPCcontext, IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>> allNPCcontexts, string currentModDir, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            var FaceGenSubPaths = getFaceGenSubPathStrings(currentNPCcontext.Record.FormKey);
+
+            string modMeshPath = Path.Combine(currentModDir, "meshes", FaceGenSubPaths.Item1);
+
+            MemoryStream currentStream = new MemoryStream();
+            FileStream winnerStream;
+
+            HashSet<IArchiveReader> readers_currentMod = new HashSet<IArchiveReader>();
+
+            readers_currentMod = BSAHandler.openBSAArchiveReaders(currentModDir, currentNPCcontext.ModKey);
+
+            // get current mod mesh
+            if (File.Exists(modMeshPath))
+            {
+                var mFile = File.Open(modMeshPath, FileMode.Open);
+                mFile.CopyTo(currentStream);
+            }
+            else if (BSAHandler.HaveFile(modMeshPath, readers_currentMod, out var archiveMeshFile) && archiveMeshFile != null)
+            {
+                archiveMeshFile.CopyDataTo(currentStream);
+            }
+            else
+            {
+                return false;
+            }
+
+
+            string winnerMeshPath = Path.Combine(state.DataFolderPath, "meshes", FaceGenSubPaths.Item1); 
+
+
+            if (FileComparison.FilesAreEqual(modMeshPath, winnerMeshPath) == false) 
+            {
+                return false;
+            }
+
+            string modTexPath = Path.Combine(currentModDir, "textures", FaceGenSubPaths.Item2); 
+            
+            if (File.Exists(modTexPath) == false && BSAHandler.HaveFile(modTexPath, readers_currentMod, out var archiveTexFile) == false) // If the given override doesn't provide facegen, then it trivially is not the facegen conflict winner
+            {
+                return false;
+            }
+
+            string winnerTexPath = Path.Combine(state.DataFolderPath, "textures", FaceGenSubPaths.Item2);
+
+            if (FileComparison.FilesAreEqual(modTexPath, winnerTexPath) == false)
+            {
+                return false;
+            }
+
+            return true;
+        }
+        */
+
 
         public static void getWarningsToSuppress(PatcherSettings settings, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
@@ -816,7 +905,7 @@ namespace NPCPluginChooser
             return PluginDirectoryDict;
         }
 
-        public static void copyAssets(Npc npc, ModKey NPCModKey, PatcherSettings settings, string currentModDirectory, PerPluginSettings PPS, bool isTemplated, IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public static void copyAssets(Npc npc, ModKey NPCModKey, PatcherSettings settings, string currentModDirectory, PerPluginSettings PPS, bool isTemplated, IPatcherState<ISkyrimMod, ISkyrimModGetter> state, FileOperationLog fileCopyOperations)
         {
             HashSet<string> meshes = new HashSet<string>();
             HashSet<string> textures = new HashSet<string>();
@@ -838,7 +927,7 @@ namespace NPCPluginChooser
             HashSet<string> extractedTexFiles = new HashSet<string>();
             if (settings.HandleBSAFiles_Patching) // if settings.CopyExtraAssets is disabled, then only FaceGen will be extracted here (if in BSA)
             {
-                unpackAssetsFromBSA(meshes, textures, extractedMeshFiles, extractedTexFiles, NPCModKey, currentModDirectory, settings); // meshes and textures are edited in this function - found & extracted files are removed from the HashSets. Only loose files remain
+                unpackAssetsFromBSA(meshes, textures, extractedMeshFiles, extractedTexFiles, NPCModKey, currentModDirectory, settings, fileCopyOperations); // meshes and textures are edited in this function - found & extracted files are removed from the HashSets. Only loose files remain
             } // end BSA handling for extra assets found in plugin
 
 
@@ -856,7 +945,7 @@ namespace NPCPluginChooser
 
                     // extract these additional textures from BSA if possible
                     HashSet<string> ExtractedExtraTextures = new HashSet<string>();
-                    unpackAssetsFromBSA(new HashSet<string>(), extraTexturesFromNif, new HashSet<string>(), ExtractedExtraTextures, NPCModKey, currentModDirectory, settings); // if any additional textures live the BSA, unpack them
+                    unpackAssetsFromBSA(new HashSet<string>(), extraTexturesFromNif, new HashSet<string>(), ExtractedExtraTextures, NPCModKey, currentModDirectory, settings, fileCopyOperations); // if any additional textures live the BSA, unpack them
 
                     // remove BSA-unpacked textures from the additional texture list
                     foreach (string s in ExtractedExtraTextures)
@@ -877,8 +966,8 @@ namespace NPCPluginChooser
             var warningsToSuppress = new HashSet<string>(settings.warningsToSuppress_Global.Paths);
             if (warningsToSuppressList.Any()) { warningsToSuppress = warningsToSuppressList.First().Paths; }
 
-            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress, settings.GameDataPath);
-            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress, settings.GameDataPath);
+            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress, settings.GameDataPath, fileCopyOperations);
+            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress, settings.GameDataPath, fileCopyOperations);
         }
 
         public static void getExtraTexturesFromNif(HashSet<string> NifPaths, string NifDirectory, HashSet<string> outputTextures, HashSet<string> ignoredTextures)
@@ -900,7 +989,7 @@ namespace NPCPluginChooser
             }
         }
 
-        public static void unpackAssetsFromBSA(HashSet<string> MeshesToExtract, HashSet<string> TexturesToExtract, HashSet<string> extractedMeshes, HashSet<string> ExtractedTextures, ModKey currentModKey, string currentModDirectory, PatcherSettings settings)
+        public static void unpackAssetsFromBSA(HashSet<string> MeshesToExtract, HashSet<string> TexturesToExtract, HashSet<string> extractedMeshes, HashSet<string> ExtractedTextures, ModKey currentModKey, string currentModDirectory, PatcherSettings settings, FileOperationLog FileCopyOperations)
         {
             var BSAreaders = BSAHandler.openBSAArchiveReaders(currentModDirectory, currentModKey);
             foreach (string subPath in MeshesToExtract)
@@ -908,11 +997,12 @@ namespace NPCPluginChooser
                 string meshPath = Path.Combine("meshes", subPath);
                 foreach (var reader in BSAreaders)
                 {
-                    if (BSAHandler.TryGetFile(meshPath, reader, out var file) && file != null)
+                    if (reader.Reader != null && BSAHandler.TryGetFile(meshPath, reader.Reader, out var file) && file != null)
                     {
                         extractedMeshes.Add(subPath);
                         string destFile = Path.Combine(settings.AssetOutputDirectory, meshPath);
                         BSAHandler.extractFileFromBSA(file, destFile);
+                        FileCopyOperations.CopyLog.Add(new FileCopyLog() { BSApath = reader.FilePath.Path, Source = meshPath, Destination = destFile });
                         break;
                     }
                 }
@@ -923,11 +1013,12 @@ namespace NPCPluginChooser
                 string texPath = Path.Combine("textures", subPath);
                 foreach (var reader in BSAreaders)
                 {
-                    if (BSAHandler.TryGetFile(texPath, reader, out var file) && file != null)
+                    if (reader.Reader != null && BSAHandler.TryGetFile(texPath, reader.Reader, out var file) && file != null)
                     {
                         ExtractedTextures.Add(subPath);
                         string destFile = Path.Combine(settings.AssetOutputDirectory, texPath);
                         BSAHandler.extractFileFromBSA(file, destFile);
+                        FileCopyOperations.CopyLog.Add(new FileCopyLog() { BSApath = reader.FilePath.Path, Source = texPath, Destination = destFile });
                         break;
                     }
                 }
@@ -977,7 +1068,7 @@ namespace NPCPluginChooser
             return (meshPath, texPath);
         }
 
-        public static void copyAssetFiles(PatcherSettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type, HashSet<string> warningsToSuppress, string gameDataFolder)
+        public static void copyAssetFiles(PatcherSettings settings, string dataPath, HashSet<string> assetPathList, HashSet<string> ExtraDataDirectories, string type, HashSet<string> warningsToSuppress, string gameDataFolder, FileOperationLog FileCopyOperations)
         {
             string outputPrepend = Path.Combine(settings.AssetOutputDirectory, type);
             if (Directory.Exists(outputPrepend) == false)
@@ -1062,6 +1153,7 @@ namespace NPCPluginChooser
                         }
 
                         File.Copy(currentPath, destPath, true);
+                        FileCopyOperations.CopyLog.Add(new FileCopyLog() { Source = currentPath, Destination = destPath, BSApath = "" });
                     }
                 }
             }
@@ -1294,6 +1386,36 @@ namespace NPCPluginChooser
             catch
             {
                 throw new Exception("Could not write the merge.json to " + writePath);
+            }
+        }
+
+        public static void WriteFileLog(FileOperationLog FileCopyOperations)
+        {
+            string output = "File Copy Operations";
+            foreach (var op in FileCopyOperations.CopyLog)
+            {
+                output += "Source: " + op.Source + Environment.NewLine;
+                output += "Destination: " + op.Destination;
+                if (op.BSApath.Any())
+                {
+                    output += "( from BSA: " + op.BSApath + ")" + Environment.NewLine;
+                }
+                else
+                {
+                    output += Environment.NewLine;
+                }
+                output += Environment.NewLine;
+            }
+
+            string outputPath = Path.Combine(Directory.GetCurrentDirectory(), "FileCopyLog.txt");
+            try
+            {
+                File.WriteAllText(outputPath, output);
+                Console.WriteLine("Wrote file copy log to: " + outputPath);
+            }
+            catch
+            {
+                Console.WriteLine("Error: could not write file copy log to: " + outputPath);
             }
         }
     }
