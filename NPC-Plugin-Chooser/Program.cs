@@ -12,6 +12,9 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Converters;
 using Noggog.Utility;
 using Mutagen.Bethesda.Json;
+using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Archives;
 
 namespace NPCPluginChooser
 {
@@ -51,6 +54,12 @@ namespace NPCPluginChooser
 
         public class FileCopyLog
         {
+            public FileCopyLog()
+            {
+                Source = "";
+                Destination = "";
+                BSApath = "";
+            }
             public string Source { get; set; }
             public string Destination { get; set; }
             public string BSApath { get; set; }
@@ -70,37 +79,29 @@ namespace NPCPluginChooser
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             FileOperationLog FileCopyOperations = new FileOperationLog();
-            // get the BothHand equipment type
-            FormKey eitherHandEquipType;
-            FormKey RightHandEquipType;
-            if (FormKey.TryFactory("013F44:Skyrim.esm", out eitherHandEquipType) && FormKey.TryFactory("013F42:Skyrim.esm", out RightHandEquipType)) // this is from the FormID that I found in SSEedit
-            {
-                // should never be false if Synthesis detect Skyrim, unless Bethesda changes the FormID of the EquipType for some reason
-                foreach (var weap in state.LoadOrder.PriorityOrder.Weapon().WinningOverrides()) // go through all the weapons in the load order
-                {
-                    Console.WriteLine("I was able to load {0}", weap.Name);
-                    if (!weap.EquipmentType.Equals(eitherHandEquipType) && weap.EquipmentType.Equals(RightHandEquipType)) // if the weapon is already bothhanded, ignore it
-                    {
-                        var weaponOverride = state.PatchMod.Weapons.GetOrAddAsOverride(weap); // if the weapon is not already bothhanded, add it to the patch
-                        weaponOverride.EquipmentType.SetTo(eitherHandEquipType); // set the equip type of the new override to Either Hand
-                        Console.WriteLine("I'm supposed to edit this weapon");
-                    }
-                    else
-                    {
-                        Console.WriteLine("I'm not supposed to edit this weapon");
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("Couldn't find one of the requested FormKeys");
-            }
 
             PatcherSettings settings = Settings.Value;
 
             PatcherSettings outputSettings = new PatcherSettings(); // only used if Mode == SettingsGen
 
             Dictionary<ModKey, string> PluginDirectoryDict = initPluginDirectoryDict(settings, state);
+
+            if (string.IsNullOrWhiteSpace(settings.GameDataPath))
+            {
+                Console.WriteLine("Game data path autodetected to {0}", state.DataFolderPath);
+                settings.UsedDataPath = state.DataFolderPath;
+            }
+            else if (!Directory.Exists(settings.GameDataPath))
+            {
+                Console.WriteLine("Cannot find data folder at path: {0}", settings.GameDataPath);
+                Console.WriteLine("Using auto-detected folder at path: {0}", state.DataFolderPath);
+                settings.UsedDataPath = state.DataFolderPath;
+            }
+            else
+            {
+                Console.WriteLine("Found manually set data folder at path: {0}", settings.GameDataPath);
+                settings.UsedDataPath = settings.GameDataPath;
+            }
 
             getWarningsToSuppress(settings, state);
             getPathstoIgnore(settings, state);
@@ -172,7 +173,7 @@ namespace NPCPluginChooser
 
                 foreach (var PPS in settings.PluginsToForward)
                 {
-                    Console.WriteLine("Processing {0}", PPS.Plugin.ToString());
+                    Console.WriteLine("Searching for {0} in game data", PPS.Plugin.ToString());
 
                     if (PluginDirectoryDict.ContainsKey(PPS.Plugin) == false)
                     {
@@ -180,7 +181,7 @@ namespace NPCPluginChooser
                     }
                     string currentDataDir = PluginDirectoryDict[PPS.Plugin];
 
-                    state.LoadOrder.TryGetValue(PPS.Plugin, out var currentModContext);
+                    var currentModContext = state.LoadOrder.TryGetValue(PPS.Plugin);
                     if (currentModContext != null && currentModContext.Mod != null)
                     {
                         foreach (var npc in currentModContext.Mod.Npcs)
@@ -189,7 +190,7 @@ namespace NPCPluginChooser
                             if (PPS.SelectAll || (PPS.InvertSelection == false && PPS.NPCs.Contains(npc.AsLinkGetter())) || (PPS.InvertSelection == true && !PPS.NPCs.Contains(npc.AsLinkGetter())))
                             {
                                 string NPCdispStr = npc.Name + " | " + npc.EditorID + " | " + npc.FormKey.ToString();
-                                Console.WriteLine("Forwarding appearance of {0}", NPCdispStr);
+                                if (settings.VerboseDisplay) { Console.WriteLine("Forwarding appearance of {0}", NPCdispStr); }
                                 if (!isTemplated && faceGenExists(npc.FormKey, currentModContext.ModKey, currentDataDir, PPS.ExtraDataDirectories, settings.HandleBSAFiles_Patching, state, out var BSAfiles) == false)
                                 {
                                     if (settings.AbortIfMissingFaceGen)
@@ -206,6 +207,17 @@ namespace NPCPluginChooser
                                 copyAssets(NPCoverride, currentModContext.ModKey, settings, currentDataDir, PPS, isTemplated, state, FileCopyOperations);
                             }
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine("The current load order does not contain {0}", PPS.Plugin.ToString());
+                        Console.WriteLine("For your reference, the current load order as it appears to this patcher is: ");
+                        foreach (var mod in state.LoadOrder)
+                        {
+                            Console.WriteLine(mod.Key.ToString());
+                        }
+
+                        throw new Exception();
                     }
 
                     //remap dependencies
@@ -232,7 +244,7 @@ namespace NPCPluginChooser
 
                 if (settings.VerboseFileLog)
                 {
-                    WriteFileLog(FileCopyOperations);
+                    WriteFileLog(FileCopyOperations, settings);
                 }
             }
         }
@@ -535,8 +547,8 @@ namespace NPCPluginChooser
 
             // check for loose file in data path first.
 
-            string winnerMeshPath = Path.Combine(settings.GameDataPath, "meshes", FaceGenSubPaths.Item1);
-            string winnerTexPath = Path.Combine(settings.GameDataPath, "textures", FaceGenSubPaths.Item2);
+            string winnerMeshPath = Path.Combine(settings.UsedDataPath, "meshes", FaceGenSubPaths.Item1);
+            string winnerTexPath = Path.Combine(settings.UsedDataPath, "textures", FaceGenSubPaths.Item2);
 
             bool meshFound = false;
             bool texFound = false;
@@ -585,14 +597,14 @@ namespace NPCPluginChooser
 
                     if (meshFound == false && BSAHandler.HaveFile(BSAmeshPath, currentContextReaders.Select(x => x.Reader).ToHashSet(), out var archiveMeshFile) && archiveMeshFile != null)
                     {
-                        archiveMeshFile.CopyDataTo(NifStream);
+                        archiveMeshFile.AsStream().CopyTo(NifStream);
                         meshFound = true;
                         NifBSAWinner = context.ModKey;
                     }
 
                     if (texFound == false && BSAHandler.HaveFile(BSAtexPath, currentContextReaders.Select(x => x.Reader).ToHashSet(), out var archiveTexFile) && archiveTexFile != null)
                     {
-                        archiveTexFile.CopyDataTo(DdsStream);
+                        archiveTexFile.AsStream().CopyTo(DdsStream);
                         texFound = true;
                         DdsBSAWinner = context.ModKey;
                     }
@@ -832,7 +844,7 @@ namespace NPCPluginChooser
 
                     if (settings.BaseGamePlugins.Contains(mk))
                     {
-                        PluginDirectoryDict.Add(mk, settings.GameDataPath);
+                        PluginDirectoryDict.Add(mk, settings.UsedDataPath);
                         continue;
                     }
 
@@ -874,7 +886,7 @@ namespace NPCPluginChooser
                                 }
                                 if (settings.BaseGamePlugins.Contains(PPS.Plugin))
                                 {
-                                    PluginDirectoryDict.Add(PPS.Plugin, settings.GameDataPath);
+                                    PluginDirectoryDict.Add(PPS.Plugin, settings.UsedDataPath);
                                     break;
                                 }
 
@@ -896,7 +908,7 @@ namespace NPCPluginChooser
                                 break;
 
                             case Mode.Simple:
-                                PluginDirectoryDict.Add(PPS.Plugin, settings.GameDataPath);
+                                PluginDirectoryDict.Add(PPS.Plugin, settings.UsedDataPath);
                                 break;
                         }
                     }
@@ -966,8 +978,8 @@ namespace NPCPluginChooser
             var warningsToSuppress = new HashSet<string>(settings.warningsToSuppress_Global.Paths);
             if (warningsToSuppressList.Any()) { warningsToSuppress = warningsToSuppressList.First().Paths; }
 
-            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress, settings.GameDataPath, fileCopyOperations);
-            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress, settings.GameDataPath, fileCopyOperations);
+            copyAssetFiles(settings, currentModDirectory, meshes, PPS.ExtraDataDirectories, "Meshes", warningsToSuppress, settings.UsedDataPath, fileCopyOperations);
+            copyAssetFiles(settings, currentModDirectory, textures, PPS.ExtraDataDirectories, "Textures", warningsToSuppress, settings.UsedDataPath, fileCopyOperations);
         }
 
         public static void getExtraTexturesFromNif(HashSet<string> NifPaths, string NifDirectory, HashSet<string> outputTextures, HashSet<string> ignoredTextures)
@@ -1389,16 +1401,16 @@ namespace NPCPluginChooser
             }
         }
 
-        public static void WriteFileLog(FileOperationLog FileCopyOperations)
+        public static void WriteFileLog(FileOperationLog FileCopyOperations, PatcherSettings settings)
         {
-            string output = "File Copy Operations";
+            string output = "File Copy Operations" + Environment.NewLine;
             foreach (var op in FileCopyOperations.CopyLog)
             {
                 output += "Source: " + op.Source + Environment.NewLine;
                 output += "Destination: " + op.Destination;
                 if (op.BSApath.Any())
                 {
-                    output += "( from BSA: " + op.BSApath + ")" + Environment.NewLine;
+                    output += " (from BSA: " + op.BSApath + ")" + Environment.NewLine;
                 }
                 else
                 {
@@ -1407,9 +1419,14 @@ namespace NPCPluginChooser
                 output += Environment.NewLine;
             }
 
-            string outputPath = Path.Combine(Directory.GetCurrentDirectory(), "FileCopyLog.txt");
+            string outputPath = Path.Combine(settings.AssetOutputDirectory, "FileCopyLog.txt");
             try
             {
+                FileInfo file = new FileInfo(outputPath);
+                if (file.Directory != null)
+                {
+                    file.Directory.Create(); // If the directory already exists, this method does nothing.
+                }
                 File.WriteAllText(outputPath, output);
                 Console.WriteLine("Wrote file copy log to: " + outputPath);
             }

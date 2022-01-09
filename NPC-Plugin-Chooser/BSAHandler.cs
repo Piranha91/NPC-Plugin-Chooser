@@ -5,23 +5,28 @@ using System.Text;
 using System.Threading.Tasks;
 using Mutagen.Bethesda;
 using System.IO;
-using Mutagen.Bethesda.Plugins; // for formkey, modkey classes
-using Mutagen.Bethesda.Archives; // for bsa handling
+using Mutagen.Bethesda.Archives;
+using Mutagen.Bethesda.Plugins;
 
 namespace NPCPluginChooser
 {
+    public class PathedArchiveReader
+    {
+        public IArchiveReader? Reader { get; set; }
+        public Noggog.FilePath FilePath { get; set; }
+    }
     class BSAHandler
     {
-        public static HashSet<IArchiveReader> openBSAArchiveReaders(string currentDataDir, ModKey currentPlugin)
+        public static List<PathedArchiveReader> openBSAArchiveReaders(string currentDataDir, ModKey currentPlugin)
         {
-            var readers = new HashSet<IArchiveReader>();
+            var readers = new List<PathedArchiveReader>();
 
             foreach (var bsaFile in Archive.GetApplicableArchivePaths(GameRelease.SkyrimSE, currentDataDir, currentPlugin))
             {
                 try
                 {
                     var bsaReader = Archive.CreateReader(GameRelease.SkyrimSE, bsaFile);
-                    readers.Add(bsaReader);
+                    readers.Add(new PathedArchiveReader() { Reader = bsaReader, FilePath = bsaFile });
                 }
                 catch
                 {
@@ -65,9 +70,10 @@ namespace NPCPluginChooser
             }
         }
 
-        public static bool TryGetFile(string subpath, IArchiveReader bsaReader, out IArchiveFile? file)
+        public static bool TryGetFile(string subpath, IArchiveReader? bsaReader, out IArchiveFile? file)
         {
             file = null;
+            if (bsaReader == null) { return false; }
             var files = bsaReader.Files.Where(candidate => candidate.Path.Equals(subpath, StringComparison.OrdinalIgnoreCase));
             if (files.Any())
             {
@@ -80,7 +86,7 @@ namespace NPCPluginChooser
             }
         }
 
-        public static bool HaveFile(string subpath, HashSet<IArchiveReader> bsaReaders, out IArchiveFile? archiveFile)
+        public static bool HaveFile(string subpath, HashSet<IArchiveReader?> bsaReaders, out IArchiveFile? archiveFile)
         {
             foreach (var reader in bsaReaders)
             {

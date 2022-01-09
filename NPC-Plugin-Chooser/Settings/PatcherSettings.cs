@@ -43,8 +43,11 @@ namespace NPCPluginChooser.Settings
 
         [SynthesisOrder]
         [SynthesisSettingName("Skyrim\\Data Path")]
-        [SynthesisTooltip("Path of your Skyrim\\Data folder. Can be left blank to auto-detect.")]
+        [SynthesisTooltip("Path of your Skyrim\\Data folder.")]
         public string GameDataPath { get; set; } = "";
+
+        [SynthesisIgnoreSetting]
+        public string UsedDataPath { get; set; } = "";
 
         [SynthesisOrder]
         [SynthesisSettingName("Mod Organizer 2\\mods Path")]
@@ -129,6 +132,14 @@ namespace NPCPluginChooser.Settings
         public HashSet<suppressedWarnings> warningsToSuppress { get; set; } = new HashSet<suppressedWarnings>();
         [SynthesisIgnoreSetting]
         public suppressedWarnings warningsToSuppress_Global { get; set; } = new suppressedWarnings();
+
+        [SynthesisOrder]
+        [SynthesisTooltip("If true, the patcher will write every asset copy operation to a separate FileCopyLog.txt")]
+        public bool VerboseFileLog { get; set; } = false;
+
+        [SynthesisOrder]
+        [SynthesisTooltip("If true, the patcher will show each patched NPC in the log window (might slightly slow down the patcher on large lists)")]
+        public bool VerboseDisplay { get; set; } = true;
     }
 
     public enum Mode
